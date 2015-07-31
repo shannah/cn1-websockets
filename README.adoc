@@ -46,7 +46,7 @@ THE SOFTWARE.
 
 [source,java]
 ----
-WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteboardendpoint") {
+final WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteboardendpoint") {
 
     @Override
     protected void onOpen() {
@@ -75,6 +75,20 @@ WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteboarden
     
 };
 sock.connect();
+
+Form hi = new Form("Hi World");
+hi.addComponent(new Label("Hi World"));
+final SpanLabel l = new SpanLabel();
+hi.addComponent(l);
+hi.addComponent(new Button(new Command("Ping Peer") {
+
+     @Override
+     public void actionPerformed(ActionEvent evt) {
+         sock.send("Hello From Codename One");
+     }
+     
+}));
+hi.show();
 ----
 
 == Contributions
