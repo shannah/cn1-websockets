@@ -23,7 +23,7 @@
         <delete dir="src"/>
         <mkdir dir="src"/>
         <copy todir="src">
-            <fileset dir="../cn1-websockets-demo/src" includes="**/*.java" excludes="**/WebSocketDemo.java"/>
+            <fileset dir="../cn1-websockets-demo/src" includes="**/*.java" excludes="**/WebSocketDemo.java,**/theme.res"/>
         </copy>
         <delete dir="native"/>
         <mkdir dir="native"/>
