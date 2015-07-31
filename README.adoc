@@ -11,7 +11,7 @@ This library adds WebSocket client support for Codename One apps.
 
 == Installation
 
-Copy the cn1-websockets.cn1lib file into your project's `lib` directory.  Then select "Refresh Libs".
+Copy the cn1-websockets.cn1lib file https://github.com/shannah/cn1-websockets/releases/latest[from the latest release] into your project's `lib` directory.  Then select "Refresh Libs".
 
 Building for iOS additionally requires the following build hints to be set:
 
@@ -77,16 +77,12 @@ final WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteb
 sock.connect();
 
 Form hi = new Form("Hi World");
-hi.addComponent(new Label("Hi World"));
-final SpanLabel l = new SpanLabel();
-hi.addComponent(l);
 hi.addComponent(new Button(new Command("Ping Peer") {
 
      @Override
      public void actionPerformed(ActionEvent evt) {
          sock.send("Hello From Codename One");
      }
-     
 }));
 hi.show();
 ----
