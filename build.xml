@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="CN1WebSockets" default="cn1lib" basedir=".">
+  <description>Codename One Web Sockets Library</description>
+  <target name="cn1lib" description="Build the cn1lib">
+    <ant inheritall="false" antfile="cn1-websockets-lib/build.xml" target="jar" />
+    <mkdir dir="dist"/>
+    <copy file="cn1-websockets-lib/dist/cn1-websockets-lib.cn1lib" tofile="dist/cn1-websockets.cn1lib" overwrite="true"/>
+  </target>
+  
+  <target name="clean" description="Clean build targets">
+    <ant inheritall="false" antfile="cn1-websockets-demo/build.xml" target="clean" />
+    <ant inheritall="false" antfile="cn1-websockets-lib/build.xml" target="clean" />
+    <delete dir="dist"/>
+  </target>
+</project>
+    
