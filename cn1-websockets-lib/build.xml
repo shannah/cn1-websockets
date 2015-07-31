@@ -20,16 +20,7 @@
     <target name="-pre-compile">
         <echo>Compile is forcing compliance to the supported API's/features for maximum device compatibility. This allows smaller
         code size and wider device support</echo>
-        <delete dir="src"/>
-        <mkdir dir="src"/>
-        <copy todir="src">
-            <fileset dir="../cn1-websockets-demo/src" includes="**/*.java" excludes="**/WebSocketDemo.java,**/theme.res"/>
-        </copy>
-        <delete dir="native"/>
-        <mkdir dir="native"/>
-        <copy todir="native">
-            <fileset dir="../cn1-websockets-demo/native" includes="**"/>
-        </copy>
+        
         <mkdir dir="build/tmp"/>
         <javac destdir="build/tmp"
             source="1.5"
@@ -42,8 +33,6 @@
 
       
     <target name="-pre-init">
-        <delete dir="src"/>
-        <delete dir="native"/>
         <property name="javac.source" value="1.5" />
         <property name="javac.target" value="1.5" />
     </target>

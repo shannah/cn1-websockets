@@ -2,12 +2,25 @@
 <project name="CN1WebSockets" default="cn1lib" basedir=".">
   <description>Codename One Web Sockets Library</description>
   <target name="cn1lib" description="Build the cn1lib">
+    <delete dir="cn1-websockets-lib/src"/>
+    <mkdir dir="cn1-websockets-lib/src"/>
+    <copy todir="cn1-websockets-lib/src">
+        <fileset dir="cn1-websockets-demo/src" includes="**/*.java" excludes="**/WebSocketDemo.java,**/theme.res"/>
+    </copy>
+    <delete dir="cn1-websockets-lib/native"/>
+    <mkdir dir="cn1-websockets-lib/native"/>
+    <copy todir="cn1-websockets-lib/native">
+        <fileset dir="cn1-websockets-demo/native" includes="**"/>
+    </copy>
     <ant inheritall="false" antfile="cn1-websockets-lib/build.xml" target="jar" />
     <mkdir dir="dist"/>
     <copy file="cn1-websockets-lib/dist/cn1-websockets-lib.cn1lib" tofile="dist/cn1-websockets.cn1lib" overwrite="true"/>
   </target>
   
   <target name="clean" description="Clean build targets">
+    <delete dir="cn1-websockets-lib/src"/>
+    <delete dir="cn1-websockets-lib/native"/>
+        
     <ant inheritall="false" antfile="cn1-websockets-demo/build.xml" target="clean" />
     <ant inheritall="false" antfile="cn1-websockets-lib/build.xml" target="clean" />
     <delete dir="dist"/>
