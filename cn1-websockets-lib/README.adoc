@@ -1,4 +1,4 @@
 This Netbeans project merely used as a project template for generating  the cn1lib for the Codename One WebSockets project.
 
-* See link::..[the readme file] for more information about the Codename One WebSockets library.
-* The actual source files for this library are located in the link::../cn1-websockets-demo[WebSockets Demo project]
+* See https://github.com/shannah/cn1-websockets[the readme file] for more information about the Codename One WebSockets library.
+* The actual source files for this library are located in the https://github.com/shannah/cn1-websockets/tree/master/cn1-websockets-demo[WebSockets Demo project]
