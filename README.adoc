@@ -18,6 +18,18 @@ Building for iOS additionally requires the following build hints to be set:
 . `ios.add_libs`=`libicucore.dylib`
 . `ios.objC` = `true`
 
+== Demo
+
+You can try this out by running the chat demo app.
+
+* https://github.com/shannah/cn1-websockets/tree/master/cn1-websockets-demo[Source] (Netbeans Project)
+* http://translation.weblite.ca:8080/WebSocketDemo[Javascript Port]
+* http://translation.weblite.ca:8080/cn1-demos/WebSocketDemo-release.apk[Android APK]
+* http://translation.weblite.ca:8080/cn1-demos/CN1WebSockets.dmg[Mac OS X Desktop App]
+* iOS (Build from https://github.com/shannah/cn1-websockets/tree/master/cn1-websockets-demo[source])
+
+The companion JavaEE server project for this demo app can be found https://github.com/shannah/cn1-websockets/tree/master/cn1-websocket-demo-server[here].
+
 == License
 
 The MIT License (MIT)
