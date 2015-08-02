@@ -25,10 +25,14 @@ package com.codename1.io.websocket;
 import com.codename1.components.SpanLabel;
 import com.codename1.ui.Button;
 import com.codename1.ui.Command;
+import com.codename1.ui.Container;
 import com.codename1.ui.Display;
 import com.codename1.ui.Form;
 import com.codename1.ui.Label;
+import com.codename1.ui.TextField;
 import com.codename1.ui.events.ActionEvent;
+import com.codename1.ui.layouts.BorderLayout;
+import com.codename1.ui.layouts.BoxLayout;
 import com.codename1.ui.plaf.UIManager;
 import com.codename1.ui.util.Resources;
 import java.io.IOException;
@@ -37,6 +41,8 @@ public class WebSocketDemo {
 
     private Form current;
     private Resources theme;
+    WebSocket sock;
+    Container chatContainer;
 
     public void init(Object context) {
         try {
@@ -57,11 +63,8 @@ public class WebSocketDemo {
                 Log.sendLog();
             }
         });*/
-    }
-    
-    public void start() {
         
-         final WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteboardendpoint") {
+        sock = new WebSocket("ws://10.0.1.21:8080/cn1-websocket-demo-server/chat") {
 
             @Override
             protected void onOpen() {
@@ -74,8 +77,21 @@ public class WebSocketDemo {
             }
 
             @Override
-            protected void onMessage(String message) {
+            protected void onMessage(final String message) {
                 System.out.println("Received message "+message);
+                Display.getInstance().callSerially(new Runnable() {
+
+                    public void run() {
+                        if (chatContainer == null) {
+                            return;
+                        }
+                        SpanLabel label = new SpanLabel();
+                        label.setText(message);
+                        chatContainer.addComponent(label);
+                        chatContainer.animateHierarchy(100);
+                    }
+                    
+                });
             }
 
             @Override
@@ -91,25 +107,54 @@ public class WebSocketDemo {
         };
         System.out.println("Sending connect");
         sock.connect();
-        
-        if(current != null){
-            current.show();
-            return;
-        }
-        Form hi = new Form("Hi World");
-        hi.addComponent(new Label("Hi World"));
-        final SpanLabel l = new SpanLabel();
-        hi.addComponent(l);
-        hi.addComponent(new Button(new Command("Ping Peer") {
+    }
+    
+    void showLogin() {
+        Form f = new Form("Login");
+        f.addComponent(new Label("Name: "));
+        final TextField nameField = new TextField();
+        f.addComponent(nameField);
+        f.addComponent(new Button(new Command("Login"){ 
 
-             @Override
-             public void actionPerformed(ActionEvent evt) {
-                 sock.send("Hello From Codename One");
-             }
-
-             
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                sock.send(nameField.getText());
+                showChat();
+            }
+               
         }));
-        hi.show();
+        f.show();
+    }
+    
+    void showChat() {
+        Form f= new Form("Chat");
+        f.setLayout(new BorderLayout());
+        
+        Container south = new Container();
+        final TextField tf = new TextField();
+        Button send = new Button(new Command("Send") {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                sock.send(tf.getText());
+                tf.setText("");
+            }
+             
+        });
+        
+        chatContainer = new Container();
+        chatContainer.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
+        
+        south.addComponent(tf);
+        south.addComponent(send);
+        f.addComponent(BorderLayout.SOUTH, south);
+        f.addComponent(BorderLayout.CENTER, chatContainer);
+        f.show();
+        
+    }
+    
+    public void start() {
+        showLogin();
         
        
         
