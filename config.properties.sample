@@ -1,0 +1,16 @@
+#Properties for live server deployment
+#Fri, 26 Jun 2015 11:51:56 -0700
+prodn.server.hostname=example.com
+prodn.server.tomcat.path=/path/to/apache-tomcat-8.0.24
+prodn.server.ssh.username=yourusername
+prodn.server.ssh.password=
+tomcat.local.path=/path/to/apache-tomcat-7.0.59
+tomcat.deploy.url=http://${prodn.server.hostname}:8080/manager/text
+tomcat.deploy.user=tomcatuser
+tomcat.deploy.password=tomcatuserpass
+tomcat.deploy.context=/cn1-websockets-demo
+## The final production URL
+ioscert.production.url=http\://${prodn.server.hostname}\:8080/cn1-websockets-demo
+
+## The development/testing URL
+#ioscert.development.url=http://localhost:8080/cn-websocket-demo-server

@@ -44,6 +44,8 @@ public class WebSocketDemo {
     WebSocket sock;
     Container chatContainer;
 
+    public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
+    
     public void init(Object context) {
         try {
             theme = Resources.openLayered("/theme");
@@ -64,7 +66,7 @@ public class WebSocketDemo {
             }
         });*/
         
-        sock = new WebSocket("ws://10.0.1.21:8080/cn1-websocket-demo-server/chat") {
+        sock = new WebSocket(SERVER_URL) {
 
             @Override
             protected void onOpen() {
@@ -149,6 +151,7 @@ public class WebSocketDemo {
         south.addComponent(send);
         f.addComponent(BorderLayout.SOUTH, south);
         f.addComponent(BorderLayout.CENTER, chatContainer);
+        f.setFormBottomPaddingEditingMode(true);
         f.show();
         
     }
