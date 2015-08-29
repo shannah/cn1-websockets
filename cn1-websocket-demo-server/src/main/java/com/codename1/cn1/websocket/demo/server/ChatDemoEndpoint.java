@@ -31,6 +31,15 @@ public class ChatDemoEndpoint {
         System.out.println(session.getUserProperties());
         if (!session.getUserProperties().containsKey("name")) {
             session.getUserProperties().put("name", message);
+            for (Session peer : peers) {
+                try {
+                    if (!peer.getUserProperties().containsValue(message)) {
+                        peer.getBasicRemote().sendText(message + " has joined.");
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(YoutEndpoint.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
             return null;
         }
         for (Session peer: peers) {
