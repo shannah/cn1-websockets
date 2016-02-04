@@ -18,7 +18,9 @@ Building for iOS additionally requires the following build hints to be set:
 . `ios.add_libs`=`libicucore.dylib`
 . `ios.objC` = `true`
 
-== Demo
+== Chat Demo
+
+image::https://cloud.githubusercontent.com/assets/2677562/9028518/beb5ecc6-3930-11e5-8db1-3d7635a37e37.png[Chat Demo]
 
 You can try this out by running the chat demo app.
 
