@@ -24,7 +24,6 @@ package com.codename1.io.websocket;
 import com.codename1.system.NativeLookup;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 
 /**
@@ -44,6 +43,19 @@ public abstract class WebSocket {
         }
         public int getCode(){
             return code;
+        }
+    }
+    
+    /**
+     * Checks if websockets are supported on this platform.
+     * @return 
+     */
+    public static boolean isSupported() {
+        try {
+            WebSocketNativeImpl impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
+            return impl != null && impl.isSupported();
+        } catch (Throwable t) {
+            return false;
         }
     }
     
