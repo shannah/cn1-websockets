@@ -96,4 +96,8 @@ extern void com_codename1_impl_ios_IOSNative_nsDataToByteArray___long_byte_1ARRA
     }
     POOL_END();
 }
+
+-(int)getReadyState {
+    return socket.readyState;
+}
 @end

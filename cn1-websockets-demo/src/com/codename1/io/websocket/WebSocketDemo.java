@@ -71,16 +71,18 @@ public class WebSocketDemo {
             @Override
             protected void onOpen() {
                 System.out.println("In onOpen");
+                System.out.println("Ready state: "+sock.getReadyState());
             }
 
             @Override
             protected void onClose(int statusCode, String reason) {
-                
+                System.out.println("Closing: "+sock.getReadyState());
             }
 
             @Override
             protected void onMessage(final String message) {
                 System.out.println("Received message "+message);
+                System.out.println("Ready state: "+sock.getReadyState());
                 Display.getInstance().callSerially(new Runnable() {
 
                     public void run() {
@@ -98,6 +100,7 @@ public class WebSocketDemo {
 
             @Override
             protected void onError(Exception ex) {
+                System.out.println("Ready state: "+sock.getReadyState());
                 System.out.println("in onError");
             }
 
@@ -108,6 +111,7 @@ public class WebSocketDemo {
             
         };
         System.out.println("Sending connect");
+        System.out.println("Ready State: "+sock.getReadyState());
         sock.connect();
     }
     

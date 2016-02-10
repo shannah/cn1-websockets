@@ -68,6 +68,10 @@ var o = {};
         callback.complete(false);
     };
     
+    o.getReadyState_ = function(callback) {
+        callback.complete(this.socket.readyState);
+    };
+    
     o.connect_ = function(callback) {
         var self = this;
         this.socket = new WebSocket(this.url);

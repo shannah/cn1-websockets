@@ -35,4 +35,5 @@ public interface WebSocketNativeImpl extends NativeInterface {
     public void sendString(String message);
     public void close();
     public void connect();
+    public int getReadyState();
 }

@@ -23,6 +23,11 @@ package com.codename1.io.websocket;
 
 //import org.java_websocket.client.WebSocketClient;
 //import org.java_websocket.handshake.ServerHandshake;
+import static com.neovisionaries.ws.client.WebSocketState.CLOSED;
+import static com.neovisionaries.ws.client.WebSocketState.CLOSING;
+import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
+import static com.neovisionaries.ws.client.WebSocketState.CREATED;
+import static com.neovisionaries.ws.client.WebSocketState.OPEN;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -135,6 +140,15 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
             throw new RuntimeException(ex);
         }
 
+    }
+    
+    public int getReadyState() {
+        switch (client.getState()) {
+            case CONNECTING: return 0;
+            case OPEN: return 1;
+            case CLOSING: return 2;
+            default: return 3;
+        }
     }
 
 }

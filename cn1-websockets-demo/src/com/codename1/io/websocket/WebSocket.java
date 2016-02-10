@@ -140,4 +140,14 @@ public abstract class WebSocket {
     public void connect() {
         impl.connect();
     }
+    
+    public WebSocketState getReadyState() {
+        int state = impl.getReadyState();
+        switch (state) {
+            case 0 : return WebSocketState.CONNECTING;
+            case 1 : return WebSocketState.OPEN;
+            case 2: return WebSocketState.CLOSING;
+            default: return WebSocketState.CLOSED;
+        }
+    }
 }

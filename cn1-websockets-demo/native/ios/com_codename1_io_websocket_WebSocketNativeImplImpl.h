@@ -35,6 +35,7 @@
 -(void)setId:(int)param;
 -(int)getId;
 -(void)connect;
+-(int)getReadyState;
 
 -(BOOL)isSupported;
 @end
