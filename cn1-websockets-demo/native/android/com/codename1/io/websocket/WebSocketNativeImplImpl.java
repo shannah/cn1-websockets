@@ -44,7 +44,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
     int id;
 
     public void close() {
-        //client.close();
+        client.sendClose();
     }
 
     public void sendBytes(byte[] message) {
