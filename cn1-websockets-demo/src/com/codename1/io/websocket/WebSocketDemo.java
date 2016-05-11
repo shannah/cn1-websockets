@@ -45,8 +45,8 @@ public class WebSocketDemo {
     WebSocket sock;
     Container chatContainer;
 
-    public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
-    //public static final String SERVER_URL="ws://10.0.4.56";
+    //public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
+    public static final String SERVER_URL="ws://10.0.4.56";
     
     public void init(Object context) {
         try {
@@ -170,7 +170,7 @@ public class WebSocketDemo {
                     System.out.println("Error while socket is null: "+ex.getMessage());
                 } else {
                     System.out.println("Ready state: "+sock.getReadyState());
-                    System.out.println("in onError");
+                    System.out.println("in onError "+ex.getMessage());
                 }
             }
 
@@ -183,6 +183,11 @@ public class WebSocketDemo {
         System.out.println("Sending connect");
         System.out.println("Ready State: "+sock.getReadyState());
         sock.connect();
+        try {
+            sock.send("Test Message");
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
         showLogin();
         
        

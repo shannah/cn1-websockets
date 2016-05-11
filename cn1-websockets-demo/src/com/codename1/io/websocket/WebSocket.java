@@ -139,14 +139,22 @@ public abstract class WebSocket {
     protected abstract void onError(Exception ex);
     
     public void send(String message) {
-        impl.sendString(message);
+        if (getReadyState() == WebSocketState.OPEN) {
+            impl.sendString(message);
+        } else {
+            this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+        }
     }
     public void send(byte[] message) {
-        impl.sendBytes(message);
+        if (getReadyState() == WebSocketState.OPEN) {
+            impl.sendBytes(message);
+        } else {
+            this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+        }
     }
     
     public void close() {
-        if (impl != null) {
+        if (impl != null && getReadyState() != WebSocketState.CLOSED) {
             impl.close();
         }
     }
