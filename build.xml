@@ -28,6 +28,10 @@
       <ant inheritall="false" antfile="cn1-websockets-demo/build.xml" target="build-for-android-device-sync" />
   </target>
   
+  <target name="android-async" description="Build Android Client DEMO APK (async)">
+      <ant inheritall="false" antfile="cn1-websockets-demo/build.xml" target="build-for-android-device" />
+  </target>
+  
   <target name="deploy-android-demo" depends="android" description="Deploy Android client DEMO to server">
     <exec failonerror="true" executable="scp">
         <arg value="cn1-websockets-demo/dist/WebSocketDemo-release.apk"/>
@@ -43,6 +47,15 @@
     <exec failonerror="true" executable="scp">
         <arg value="cn1-websockets-demo/dist/CN1WebSockets.dmg"/>
         <arg value="${prodn.server.ssh.username}@${prodn.server.hostname}:${prodn.server.tomcat.path}/webapps/ROOT/cn1-demos/CN1WebSockets.dmg" />
+    </exec>
+  </target>
+  <target name="desktop-win" description="Build Windows Desktop Client DEMO APK">
+      <ant inheritall="false" antfile="cn1-websockets-demo/build.xml" target="build-for-windows-desktop-sync" />
+  </target>
+  <target name="deploy-desktop-win-demo" depends="desktop-win" description="Deploy Windows client DEMO to server">
+    <exec failonerror="true" executable="scp">
+        <arg value="cn1-websockets-demo/dist/CN1WebSockets-1.0.exe"/>
+        <arg value="${prodn.server.ssh.username}@${prodn.server.hostname}:${prodn.server.tomcat.path}/webapps/ROOT/cn1-demos/CN1WebSockets.exe" />
     </exec>
   </target>
   

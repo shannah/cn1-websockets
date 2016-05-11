@@ -98,6 +98,9 @@ extern void com_codename1_impl_ios_IOSNative_nsDataToByteArray___long_byte_1ARRA
 }
 
 -(int)getReadyState {
+    if (socket == nil) {
+        return 3;
+    }
     return socket.readyState;
 }
 @end

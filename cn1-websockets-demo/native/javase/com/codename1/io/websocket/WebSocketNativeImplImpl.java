@@ -143,6 +143,9 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
     }
     
     public int getReadyState() {
+        if (client == null) {
+            return 3;
+        }
         switch (client.getState()) {
             case CONNECTING: return 0;
             case OPEN: return 1;

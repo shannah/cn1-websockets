@@ -26,6 +26,7 @@ import com.codename1.components.SpanLabel;
 import com.codename1.ui.Button;
 import com.codename1.ui.Command;
 import com.codename1.ui.Container;
+import com.codename1.ui.Dialog;
 import com.codename1.ui.Display;
 import com.codename1.ui.Form;
 import com.codename1.ui.Label;
@@ -45,6 +46,7 @@ public class WebSocketDemo {
     Container chatContainer;
 
     public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
+    //public static final String SERVER_URL="ws://10.0.4.56";
     
     public void init(Object context) {
         try {
@@ -65,6 +67,70 @@ public class WebSocketDemo {
                 Log.sendLog();
             }
         });*/
+        
+        
+        
+    }
+    
+    void showLogin() {
+        Form f = new Form("Login");
+        f.addComponent(new Label("Name: "));
+        final TextField nameField = new TextField();
+        f.addComponent(nameField);
+        f.addComponent(new Button(new Command("Login"){ 
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                System.out.println("Hello");
+                if (sock.getReadyState() == WebSocketState.OPEN) {
+                    System.out.println("Open");
+                    sock.send(nameField.getText());
+                    showChat();
+                } else {
+                    System.out.println("Closed");
+                    Dialog.show("Dialog", "The socket is not open: "+sock.getReadyState(), "OK", null);
+                }
+            }
+               
+        }));
+        f.show();
+    }
+    
+    void showChat() {
+        Form f= new Form("Chat");
+        f.setLayout(new BorderLayout());
+        
+        Container south = new Container();
+        final TextField tf = new TextField();
+        Button send = new Button(new Command("Send") {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                if (sock.getReadyState() == WebSocketState.OPEN) {
+                    sock.send(tf.getText());
+                    tf.setText("");
+                } else {
+                    Dialog.show("", "The socket is not open", "OK", null);
+                }
+                
+            }
+             
+        });
+        
+        chatContainer = new Container();
+        chatContainer.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
+        
+        south.addComponent(tf);
+        south.addComponent(send);
+        f.addComponent(BorderLayout.SOUTH, south);
+        f.addComponent(BorderLayout.CENTER, chatContainer);
+        f.setFormBottomPaddingEditingMode(true);
+        f.show();
+        
+    }
+    
+    public void start() {
+        System.out.println("About to start socket");
         
         sock = new WebSocket(SERVER_URL) {
 
@@ -100,8 +166,12 @@ public class WebSocketDemo {
 
             @Override
             protected void onError(Exception ex) {
-                System.out.println("Ready state: "+sock.getReadyState());
-                System.out.println("in onError");
+                if (sock == null) {
+                    System.out.println("Error while socket is null: "+ex.getMessage());
+                } else {
+                    System.out.println("Ready state: "+sock.getReadyState());
+                    System.out.println("in onError");
+                }
             }
 
              @Override
@@ -113,54 +183,6 @@ public class WebSocketDemo {
         System.out.println("Sending connect");
         System.out.println("Ready State: "+sock.getReadyState());
         sock.connect();
-    }
-    
-    void showLogin() {
-        Form f = new Form("Login");
-        f.addComponent(new Label("Name: "));
-        final TextField nameField = new TextField();
-        f.addComponent(nameField);
-        f.addComponent(new Button(new Command("Login"){ 
-
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                sock.send(nameField.getText());
-                showChat();
-            }
-               
-        }));
-        f.show();
-    }
-    
-    void showChat() {
-        Form f= new Form("Chat");
-        f.setLayout(new BorderLayout());
-        
-        Container south = new Container();
-        final TextField tf = new TextField();
-        Button send = new Button(new Command("Send") {
-
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                sock.send(tf.getText());
-                tf.setText("");
-            }
-             
-        });
-        
-        chatContainer = new Container();
-        chatContainer.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
-        
-        south.addComponent(tf);
-        south.addComponent(send);
-        f.addComponent(BorderLayout.SOUTH, south);
-        f.addComponent(BorderLayout.CENTER, chatContainer);
-        f.setFormBottomPaddingEditingMode(true);
-        f.show();
-        
-    }
-    
-    public void start() {
         showLogin();
         
        

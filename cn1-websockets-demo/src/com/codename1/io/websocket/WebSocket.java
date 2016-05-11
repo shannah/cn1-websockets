@@ -22,6 +22,7 @@
 package com.codename1.io.websocket;
 
 import com.codename1.system.NativeLookup;
+import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
 
@@ -33,6 +34,9 @@ import java.io.IOException;
 public abstract class WebSocket {
     private static int nextId = 1;
     private WebSocketNativeImpl impl;
+    private String url;
+    private Thread socketThread;
+    private boolean connecting;
     
     public static class WebSocketException extends IOException {
         private final int code;
@@ -71,6 +75,7 @@ public abstract class WebSocket {
         if (socket == null) {
             sockets.remove(id);
         } else {
+            socket.connecting = false;
             socket.onMessage(message);
         }
     }
@@ -106,6 +111,10 @@ public abstract class WebSocket {
     static void errorReceived(int id, String message, int code) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
+            if (message == null) {
+                message = "null";
+            }
+            System.out.println("WebSocket error received: ID="+id+", MSG="+message+", code="+code);
             sockets.remove(id);
         } else {
             WebSocketException ex = new WebSocketException(message, code);
@@ -114,10 +123,13 @@ public abstract class WebSocket {
     }
     
     public WebSocket(String url) {
+        this.url = url;
+        
         impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
         impl.setId(nextId++);
         sockets.put(impl.getId(), this);
-        impl.setUrl(url);
+        //impl.setUrl(url);
+        //System.out.println("url is set");
     }
     
     protected abstract void onOpen();
@@ -134,14 +146,42 @@ public abstract class WebSocket {
     }
     
     public void close() {
-        impl.close();
+        if (impl != null) {
+            impl.close();
+        }
     }
     
     public void connect() {
-        impl.connect();
+        if (connecting || getReadyState() != WebSocketState.CLOSED) {
+            return;
+        }
+        if (Display.getInstance().isEdt()) {
+            socketThread = Display.getInstance().startThread(new Runnable() {
+                public void run() {
+                    connect();
+                }
+            }, "WebSocket");
+            socketThread.start();
+            
+        } else {
+            connecting = true;
+            try {
+                impl.setUrl(url);
+                impl.connect();
+            } finally {
+                connecting = false;
+            }
+            
+        }
     }
     
     public WebSocketState getReadyState() {
+        if (impl == null) {
+            if (connecting) {
+                return WebSocketState.CONNECTING;
+            }
+            return WebSocketState.CLOSED;
+        }
         int state = impl.getReadyState();
         switch (state) {
             case 0 : return WebSocketState.CONNECTING;

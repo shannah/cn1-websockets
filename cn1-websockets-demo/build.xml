@@ -555,5 +555,8 @@
         <delete>
             <fileset dir="${build.classes.dir}" includes="**/*.class"/>
         </delete>
+        <mkdir dir="build/demoTmp/unzipped" />
+        <unzip src="dist/result.zip" dest="build/demoTmp/unzipped" />
+        <copy file="build/demoTmp/unzipped/CN1WebSockets-1.0.exe" tofile="dist/CN1WebSockets-1.0.exe" overwrite="true"/>
     </target>
 </project>

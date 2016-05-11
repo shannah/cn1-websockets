@@ -65,11 +65,15 @@ var o = {};
     };
 
     o.isSupported_ = function(callback) {
-        callback.complete(false);
+        callback.complete(true);
     };
     
     o.getReadyState_ = function(callback) {
-        callback.complete(this.socket.readyState);
+        if (!this.socket) {
+            callback.complete(3);
+        } else {
+            callback.complete(this.socket.readyState);
+        }
     };
     
     o.connect_ = function(callback) {
