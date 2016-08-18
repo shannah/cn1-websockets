@@ -26,6 +26,7 @@
 @implementation com_codename1_io_websocket_WebSocketNativeImplImpl
 
 -(void)close{
+    [socket close];
 }
 
 -(void)sendString:(NSString*)param {
