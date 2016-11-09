@@ -70,7 +70,12 @@ public abstract class WebSocket {
         return new byte[len];
     }
     
-    static void messageReceived(int id, String message) {
+    /**
+     * @deprecated Internal callback for native implementations.
+     * @param id
+     * @param message 
+     */
+    public static void messageReceived(int id, String message) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
@@ -80,7 +85,12 @@ public abstract class WebSocket {
         }
     }
     
-    static void messageReceived(int id, byte[] message) {
+    /**
+     * @deprecated Internal callback for native implementations
+     * @param id
+     * @param message 
+     */
+    public static void messageReceived(int id, byte[] message) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
@@ -89,7 +99,13 @@ public abstract class WebSocket {
         }
     }
     
-    static void closeReceived(int id, int statusCode, String reason) {
+    /**
+     * @deprecated Internal callback for native implementations
+     * @param id
+     * @param statusCode
+     * @param reason 
+     */
+    public static void closeReceived(int id, int statusCode, String reason) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
@@ -99,7 +115,11 @@ public abstract class WebSocket {
         }
     }
     
-    static void openReceived(int id) {
+    /**
+     * @deprecated Internal callback for native implementations.
+     * @param id 
+     */
+    public static void openReceived(int id) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
@@ -108,7 +128,13 @@ public abstract class WebSocket {
         }
     }
     
-    static void errorReceived(int id, String message, int code) {
+    /**
+     * @deprecated Internal callback for native implementations.
+     * @param id
+     * @param message
+     * @param code 
+     */
+    public static void errorReceived(int id, String message, int code) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             if (message == null) {

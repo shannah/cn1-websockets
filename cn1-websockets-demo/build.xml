@@ -75,7 +75,7 @@
             vendor="${codename1.vendor}"
             subtitle="${codename1.secondaryTitle}"
             
-            targetType="debug_iphone_steve"
+            targetType="iphone"
             certificate="${codename1.ios.debug.certificate}"
             certPassword="${codename1.ios.debug.certificatePassword}"
             provisioningProfile="${codename1.ios.debug.provision}"
@@ -474,6 +474,25 @@
             subtitle="${codename1.secondaryTitle}"
             
             targetType="win"
+            />
+    </target>
+    
+    <target name="build-for-windows-device" depends="clean,copy-windows-override,copy-libs,jar,clean-override">
+        <codeNameOne 
+            jarFile="${dist.jar}"
+            displayName="${codename1.displayName}"
+            packageName = "${codename1.packageName}"
+            mainClassName = "${codename1.mainName}"
+            version="${codename1.version}"
+            icon="${codename1.icon}"
+            vendor="${codename1.vendor}"
+            subtitle="${codename1.secondaryTitle}"
+            
+            certificate="${codename1.windows.certificate}"
+            certPassword="${codename1.windows.certificatePassword}"
+
+            targetType="debug_windows_steve"
+            automated="${automated}"
             />
     </target>
                 

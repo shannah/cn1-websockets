@@ -8,6 +8,7 @@ This library adds WebSocket client support for Codename One apps.
 . Android
 . iOS
 . Javascript
+. Windows (UWP)
 
 == Installation
 

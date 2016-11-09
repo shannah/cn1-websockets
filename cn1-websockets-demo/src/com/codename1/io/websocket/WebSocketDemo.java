@@ -45,8 +45,8 @@ public class WebSocketDemo {
     WebSocket sock;
     Container chatContainer;
 
-    //public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
-    public static final String SERVER_URL="ws://10.0.4.56";
+    public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
+    //public static final String SERVER_URL="ws://10.0.4.56";
     
     public void init(Object context) {
         try {
