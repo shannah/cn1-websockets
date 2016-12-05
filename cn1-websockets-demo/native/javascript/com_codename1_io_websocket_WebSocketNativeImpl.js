@@ -26,7 +26,7 @@
         var len = arr.length;
         var out = $rt_createByteArray(len);
         for (var i=0; i<len; i++) {
-            out[i] = arr.get(i);
+            out[i] = arr[i];
         }
         return out;
     }
