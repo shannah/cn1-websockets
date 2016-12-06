@@ -37,6 +37,7 @@ import com.codename1.ui.layouts.BoxLayout;
 import com.codename1.ui.plaf.UIManager;
 import com.codename1.ui.util.Resources;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class WebSocketDemo {
 
@@ -176,6 +177,8 @@ public class WebSocketDemo {
 
              @Override
              protected void onMessage(byte[] message) {
+                 System.out.println("Received bytes "+message.length);
+                 System.out.println(Arrays.toString(message));
                  
              }
             

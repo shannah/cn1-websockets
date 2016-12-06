@@ -100,6 +100,16 @@ public abstract class WebSocket {
     }
     
     /**
+     * @deprecated Internal callback for native implementations.  This wraps messageReceived
+     * to work arround issue with callbacks in javascript port.
+     * @param id
+     * @param message 
+     */
+    public static void messageReceivedBytes(int id, byte[] message) {
+        messageReceived(id, message);
+    }
+    
+    /**
      * @deprecated Internal callback for native implementations
      * @param id
      * @param statusCode

@@ -26,7 +26,7 @@
         var len = arr.length;
         var out = $rt_createByteArray(len);
         for (var i=0; i<len; i++) {
-            out[i] = arr[i];
+            out.data[i] = arr[i];
         }
         return out;
     }
@@ -94,7 +94,7 @@ var o = {};
             this.socket = new WebSocket(this.url);
             this.socket.binaryType = "arraybuffer";
             var messageReceivedStr = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.messageReceived__int_java_lang_String$async;
-            var messageReceivedBytes = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.messageReceived__int_byte_1ARRAY$async;
+            var messageReceivedBytes = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.messageReceivedBytes__int_byte_1ARRAY$async;
             var openReceived = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.openReceived__int$async;
             var closeReceived = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.closeReceived__int_int_java_lang_String$async;
             var errorReceived = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.errorReceived__int_java_lang_String_int$async;
