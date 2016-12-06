@@ -6,6 +6,7 @@
 package com.codename1.cn1.websocket.demo.server;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +37,7 @@ public class ChatDemoEndpoint {
         for (Session peer: peers) {
             try {
                 peer.getBasicRemote().sendText(session.getUserProperties().get("name")+": "+message);
+                peer.getBasicRemote().sendBinary(ByteBuffer.wrap(new byte[]{1,2,3}));
             } catch (IOException ex) {
                 Logger.getLogger(ChatDemoEndpoint.class.getName()).log(Level.SEVERE, null, ex);
             }
