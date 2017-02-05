@@ -20,7 +20,7 @@
  *  THE SOFTWARE.
  */
 #import <Foundation/Foundation.h>
-#import "SRWebSocket.h"
+#import <SocketRocket/SocketRocket.h>
 
 @interface com_codename1_io_websocket_WebSocketNativeImplImpl : NSObject <SRWebSocketDelegate>{
     SRWebSocket *socket;
