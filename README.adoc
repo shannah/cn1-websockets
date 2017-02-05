@@ -14,11 +14,6 @@ This library adds WebSocket client support for Codename One apps.
 
 Copy the cn1-websockets.cn1lib file https://github.com/shannah/cn1-websockets/releases/latest[from the latest release] into your project's `lib` directory.  Then select "Refresh Libs".
 
-Building for iOS additionally requires the following build hints to be set:
-
-. `ios.add_libs`=`libicucore.dylib`
-. `ios.objC` = `true`
-
 == Chat Demo
 
 image::https://cloud.githubusercontent.com/assets/2677562/9028518/beb5ecc6-3930-11e5-8db1-3d7635a37e37.png[Chat Demo]
