@@ -23,6 +23,7 @@ package com.codename1.io.websocket;
 
 //import org.java_websocket.client.WebSocketClient;
 //import org.java_websocket.handshake.ServerHandshake;
+import com.codename1.io.Log;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSED;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSING;
 import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
@@ -87,32 +88,70 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
             client.addListener(new WebSocketAdapter() {
                 @Override
                 public void onConnected(com.neovisionaries.ws.client.WebSocket websocket, Map<String, List<String>> headers) {
-                    WebSocket.openReceived(id);
+                    try {
+                        WebSocket.openReceived(id);
+                    } catch (Throwable t) {
+                        try {
+                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                        } catch (Throwable t2) {
+                            Log.e(t2);
+                        }
+                    }
                 }
 
                 @Override
                 public void onTextMessage(com.neovisionaries.ws.client.WebSocket websocket, String text) {
-                    WebSocket.messageReceived(id, text);
+                    try {
+                        WebSocket.messageReceived(id, text);
+                    } catch (Throwable t) {
+                        try {
+                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                        } catch (Throwable t2) {
+                            Log.e(t2);
+                        }
+                    }
                 }
 
                 @Override
                 public void onBinaryMessage(com.neovisionaries.ws.client.WebSocket websocket, byte[] binary) {
-                    WebSocket.messageReceived(id, binary);
+                    try {
+                        WebSocket.messageReceived(id, binary);
+                    } catch (Throwable t) {
+                        try {
+                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                        } catch (Throwable t2) {
+                            Log.e(t2);
+                        }
+                    }
                 }
 
                 @Override
                 public void onError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) {
-                    WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal());
+                    try {
+                        WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal());
+                    } catch (Throwable t) {
+                        Log.e(t);
+                    }
                 }
 
                 @Override
                 public void onDisconnected(com.neovisionaries.ws.client.WebSocket websocket,
                         WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame,
                         boolean closedByServer) {
-                    if (closedByServer) {
-                        WebSocket.closeReceived(id, serverCloseFrame.getCloseCode(), serverCloseFrame.getCloseReason());
-                    } else {
-                        WebSocket.closeReceived(id, clientCloseFrame.getCloseCode(), clientCloseFrame.getCloseReason());
+                    
+                    
+                    try {
+                        if (closedByServer) {
+                            WebSocket.closeReceived(id, serverCloseFrame.getCloseCode(), serverCloseFrame.getCloseReason());
+                        } else {
+                            WebSocket.closeReceived(id, clientCloseFrame.getCloseCode(), clientCloseFrame.getCloseReason());
+                        }
+                    } catch (Throwable t) {
+                        try {
+                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                        } catch (Throwable t2) {
+                            Log.e(t2);
+                        }
                     }
                 }
             });
