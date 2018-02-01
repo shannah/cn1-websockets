@@ -101,7 +101,7 @@ var o = {};
 
 
             this.socket.onerror = function(evt) {
-                errorReceived(self.id,  500, $rt_str(""+evt.data));
+                errorReceived(self.id, $rt_str(""+evt.data), 500);
             };
 
             this.socket.onmessage = function(e) {
