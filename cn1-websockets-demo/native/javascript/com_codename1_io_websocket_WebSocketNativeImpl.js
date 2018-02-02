@@ -23,12 +23,18 @@
 
 
     function toByteArray(arr) {
+        /**
+        // TeaVM 0.6 automatically marshalls arrays so 
+        // we don't need to generate a java byte array ourselves
+        // anymore.
         var len = arr.length;
         var out = $rt_createByteArray(len);
         for (var i=0; i<len; i++) {
             out.data[i] = arr[i];
         }
         return out;
+        */
+       return arr;
     }
 
 var o = {};
