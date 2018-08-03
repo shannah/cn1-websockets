@@ -75,7 +75,7 @@
             vendor="${codename1.vendor}"
             subtitle="${codename1.secondaryTitle}"
             
-            targetType="iphone"
+            targetType="debug_iphone_steve"
             certificate="${codename1.ios.debug.certificate}"
             certPassword="${codename1.ios.debug.certificatePassword}"
             provisioningProfile="${codename1.ios.debug.provision}"
@@ -297,6 +297,7 @@
     </target>
 
     <target name="build-for-javascript" depends="clean,copy-javascript-override,copy-libs,jar,clean-override">
+        <property name="automated" value="false"/>
         <codeNameOne 
             jarFile="${dist.jar}"
             displayName="${codename1.displayName}"
@@ -306,10 +307,54 @@
             icon="${codename1.icon}"
             vendor="${codename1.vendor}"
             subtitle="${codename1.secondaryTitle}"
-            
+            automated="${automated}"
             targetType="javascript"
             />
-    </target>    
+    </target> 
+    
+    <target name="war" depends="clean,copy-javascript-override,copy-libs,jar,clean-override" description="Create .war file with Javascript build">
+        <antcall target="build-for-javascript">
+            <param name="automated" value="true"/>
+        </antcall>
+        <basename property="dist.base" file="${dist.jar}" suffix=".jar"/>
+        <property name="dist.war" value="dist/${dist.base}.war"/>
+        <mkdir dir="build/result" />
+        <unzip src="dist/result.zip" dest="build/result" />
+        <first id="first">
+            <fileset dir="build/result" includes="*.war"/>
+        </first>
+        <copy file="${toString:first}" tofile="${dist.war}" overwrite="true"/>
+        <delete dir="build/result"/>
+        <delete file="dist/result.zip"/>
+    </target>
+    <target name="check-webapp-runner">
+        <echo>Checking Webapp Runner...</echo>
+        <available file="${user.home}/.codenameone/webapp-runner.jar" property="webapprunner.present" value="true"/>
+        <echo message="Webapp Runner present? : ${webapprunner.present}"/>
+    </target>
+    <target name="init-webapp-runner" depends="check-webapp-runner" unless="webapprunner.present">
+        <mkdir dir="${user.home}/.codenameone"/>
+        <get src="https://github.com/codenameone/cn1-binaries/raw/master/javascript/webapp-runner.jar" dest="${user.home}/.codenameone/webapp-runner.jar"/>
+    </target>
+    <target name="check-war" depends="init">
+        <echo>Checking War</echo>
+        <basename property="dist.base" file="${dist.jar}" suffix=".jar"/>
+        <property name="dist.war" value="dist/${dist.base}.war"/>
+        <available file="${dist.war}" property="war.present" value="true"/>
+        <echo message="War file present? ${war.present}"/>
+    </target>
+    <target name="init-war" depends="check-war" unless="war.present">
+        <antcall target="war"/>
+    </target>
+    <target name="run-war" depends="init-war,init-webapp-runner">
+        <property name="port" value="0"/>
+        <java jar="${user.home}/.codenameone/webapp-runner.jar" fork="true" failonerror="true">
+            <arg value="${dist.war}"/>
+            <arg value="--port"/>
+            <arg value="${port}"/>
+            <arg value="--open-in-browser"/>
+        </java>
+    </target>
     
     <target name="build-for-rim-device" depends="clean,copy-rim-override,copy-libs,jar,clean-override">
         <codeNameOne 

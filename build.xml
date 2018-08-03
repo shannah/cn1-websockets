@@ -140,5 +140,25 @@
            <arg line="mv '${prodn.server.tomcat.path}/webapps${tomcat.deploy.context}.war.new' '${prodn.server.tomcat.path}/webapps${tomcat.deploy.context}.war'"/>
        </exec>
     </target>
+   
+    <target name="demo" depends="build-server-demo">
+        <ant target="init-webapp-runner" dir="cn1-websockets-demo" usenativebasedir="true"/>
+        <parallel>
+            <java jar="${user.home}/.codenameone/webapp-runner.jar" fork="true">
+                <arg value="cn1-websocket-demo-server/target/cn1-websocket-demo-server-1.0-SNAPSHOT.war"/>
+                <arg value="--port"/>
+                <arg value="8081"/>
+            </java>
+            <sequential>
+                <waitfor maxwait="60" maxwaitunit="second" checkevery="500">
+                    <http url="http://localhost:8081/index.html"/>
+                </waitfor>
+                <ant target="run-war" dir="cn1-websockets-demo" usenativebasedir="true">
+                    <property name="port" value="8080"/>
+                </ant>
+            </sequential>
+        </parallel>
+    </target>
+    
 </project>
     
