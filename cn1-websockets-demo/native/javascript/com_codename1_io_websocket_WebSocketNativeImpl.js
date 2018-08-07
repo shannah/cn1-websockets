@@ -112,7 +112,7 @@ var o = {};
 
             this.socket.onmessage = function(e) {
                 if (typeof e.data === 'string') {
-                    messageReceivedStr(self.id, $rt_str(e.data));
+                    messageReceivedStr(self.id, e.data);
                 } else if (e.data instanceof ArrayBuffer) {
                     messageReceivedBytes(self.id, toByteArray(new Uint8Array(e.data)));
                 } else if (e.data instanceof Blob) {

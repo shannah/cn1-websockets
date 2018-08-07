@@ -21,6 +21,7 @@
  */
 package com.codename1.io.websocket;
 
+import com.codename1.io.Log;
 import com.codename1.system.NativeLookup;
 import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
@@ -81,7 +82,12 @@ public abstract class WebSocket {
             sockets.remove(id);
         } else {
             socket.connecting = false;
-            socket.onMessage(message);
+            try {
+                socket.onMessage(message);
+            } catch (Throwable t) {
+                Log.e(t);
+                socket.onError(new WebSocketException(t != null ? t.getMessage() : "Unknown Error", 500));
+            }
         }
     }
     
@@ -95,7 +101,12 @@ public abstract class WebSocket {
         if (socket == null) {
             sockets.remove(id);
         } else {
-            socket.onMessage(message);
+            try {
+                socket.onMessage(message);
+            } catch (Throwable t) {
+                Log.e(t);
+                socket.onError(new WebSocketException(t.getMessage(), 500));
+            }
         }
     }
     
@@ -120,8 +131,12 @@ public abstract class WebSocket {
         if (socket == null) {
             sockets.remove(id);
         } else {
-            socket.onClose(statusCode, reason);
-            sockets.remove(id);
+            try {
+                socket.onClose(statusCode, reason);
+                sockets.remove(id);
+            } catch (Throwable t) {
+                Log.e(t);
+            }
         }
     }
     
@@ -134,7 +149,11 @@ public abstract class WebSocket {
         if (socket == null) {
             sockets.remove(id);
         } else {
-            socket.onOpen();
+            try {
+                socket.onOpen();
+            } catch (Throwable t) {
+                Log.e(t);
+            }
         }
     }
     
@@ -154,7 +173,11 @@ public abstract class WebSocket {
             sockets.remove(id);
         } else {
             WebSocketException ex = new WebSocketException(message, code);
-            socket.onError(ex);
+            try {
+                socket.onError(ex);
+            } catch (Throwable t) {
+                Log.e(t);
+            }
         }
     }
     

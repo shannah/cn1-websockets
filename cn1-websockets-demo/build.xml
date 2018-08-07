@@ -353,6 +353,8 @@
             <arg value="--port"/>
             <arg value="${port}"/>
             <arg value="--open-in-browser"/>
+            <arg value="--temp-directory"/>
+            <arg value="dist/webapp"/>
         </java>
     </target>
     
