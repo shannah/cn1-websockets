@@ -83,7 +83,9 @@ final WebSocket sock = new WebSocket("ws://10.0.1.21:8080/WebSocketServer/whiteb
          // Received a binary message
      }
     
-};
+}
+.autoReconnect(5000); // Automatically reconnect if connection fails or server disconnects
+                      // Attempts every 5 seconds until successful
 sock.connect();
 
 Form hi = new Form("Hi World");
