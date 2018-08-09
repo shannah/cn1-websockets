@@ -44,7 +44,7 @@ var o = {};
             this.socket.close();
             callback.complete();
         } catch (e) {
-            callback.error($rt_str(""+e));
+            callback.error(""+e);
         }
     };
 
@@ -53,7 +53,7 @@ var o = {};
             this.socket.send(new Uint8Array(message).buffer);
             callback.complete();
         } catch (e) {
-            callback.error($rt_str(""+e));
+            callback.error(""+e);
         }
     };
     
@@ -62,7 +62,7 @@ var o = {};
             this.socket.send(message);
             callback.complete();
         } catch (e) {
-            callback.error($rt_str(""+e));
+            callback.error(""+e);
         }
     };
 
@@ -107,7 +107,7 @@ var o = {};
 
 
             this.socket.onerror = function(evt) {
-                errorReceived(self.id, $rt_str(""+evt.data), 500);
+                errorReceived(self.id, ""+evt.data, evt.code);
             };
 
             this.socket.onmessage = function(e) {
@@ -160,7 +160,7 @@ var o = {};
                 else
                     reason = "Unknown reason";
 
-                closeReceived(self.id, $rt_str(reason), event.code);
+                closeReceived(self.id, event.code, reason);
 
             };
 
@@ -169,7 +169,7 @@ var o = {};
             };
             callback.complete();
         } catch (e) {
-            callback.error($rt_str(""+e));
+            callback.error(""+e);
         }
     };
 

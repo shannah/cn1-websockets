@@ -23,6 +23,7 @@ package com.codename1.io.websocket;
 
 
 import com.codename1.components.SpanLabel;
+import com.codename1.io.Log;
 import com.codename1.ui.Button;
 import com.codename1.ui.Command;
 import com.codename1.ui.Container;
@@ -38,6 +39,8 @@ import com.codename1.ui.plaf.UIManager;
 import com.codename1.ui.util.Resources;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class WebSocketDemo {
 
@@ -46,8 +49,8 @@ public class WebSocketDemo {
     WebSocket sock;
     Container chatContainer;
 
-    public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
-    //public static final String SERVER_URL="ws://10.0.4.56";
+    //public static final String SERVER_URL="ws://translation.weblite.ca:8080/cn1-websockets-demo/chat";
+    public static final String SERVER_URL="ws://10.0.1.3:8081/chat";
     
     public void init(Object context) {
         try {
@@ -90,6 +93,7 @@ public class WebSocketDemo {
                 } else {
                     System.out.println("Closed");
                     Dialog.show("Dialog", "The socket is not open: "+sock.getReadyState(), "OK", null);
+                    sock.reconnect();
                 }
             }
                
@@ -112,6 +116,7 @@ public class WebSocketDemo {
                     tf.setText("");
                 } else {
                     Dialog.show("", "The socket is not open", "OK", null);
+                    showLogin();
                 }
                 
             }
@@ -144,6 +149,12 @@ public class WebSocketDemo {
             @Override
             protected void onClose(int statusCode, String reason) {
                 System.out.println("Closing: "+sock.getReadyState());
+                Display.getInstance().callSerially(new Runnable() {
+                    public void run() {
+                         showLogin();
+                    }
+                });
+               
             }
 
             @Override
@@ -167,11 +178,14 @@ public class WebSocketDemo {
 
             @Override
             protected void onError(Exception ex) {
+                
                 if (sock == null) {
                     System.out.println("Error while socket is null: "+ex.getMessage());
                 } else {
+                    
                     System.out.println("Ready state: "+sock.getReadyState());
                     System.out.println("in onError "+ex.getMessage());
+                    //Log.e(ex);
                 }
             }
 
@@ -182,7 +196,8 @@ public class WebSocketDemo {
                  
              }
             
-        };
+        }.autoReconnect(10000);
+        
         System.out.println("Sending connect");
         System.out.println("Ready State: "+sock.getReadyState());
         sock.connect();

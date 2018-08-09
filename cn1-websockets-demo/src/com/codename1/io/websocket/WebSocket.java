@@ -26,6 +26,8 @@ import com.codename1.system.NativeLookup;
 import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -38,6 +40,9 @@ public abstract class WebSocket {
     private String url;
     private Thread socketThread;
     private boolean connecting;
+    private long autoReconnectTimeout;
+    private Timer reconnectTimer;
+    private Thread reconnectTimerThread;
     
     public static class WebSocketException extends IOException {
         private final int code;
@@ -46,6 +51,12 @@ public abstract class WebSocket {
             this.code = code;
             
         }
+        
+        public WebSocketException(String message, int code, Throwable cause) {
+            super(message, cause);
+            this.code = code;
+        }
+        
         public int getCode(){
             return code;
         }
@@ -127,13 +138,16 @@ public abstract class WebSocket {
      * @param reason 
      */
     public static void closeReceived(int id, int statusCode, String reason) {
-        WebSocket socket = sockets.get(id);
+        final WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
         } else {
             try {
                 socket.onClose(statusCode, reason);
                 sockets.remove(id);
+                if (socket.reconnectTimer == null && statusCode != 1000 && socket.autoReconnectTimeout > 0) {
+                    socket.initReconnect();
+                }
             } catch (Throwable t) {
                 Log.e(t);
             }
@@ -149,6 +163,10 @@ public abstract class WebSocket {
         if (socket == null) {
             sockets.remove(id);
         } else {
+            if (socket.reconnectTimer != null) {
+                socket.reconnectTimer.cancel();
+                socket.reconnectTimer = null;
+            }
             try {
                 socket.onOpen();
             } catch (Throwable t) {
@@ -179,6 +197,17 @@ public abstract class WebSocket {
                 Log.e(t);
             }
         }
+    }
+    
+    /**
+     * Sets the auto reconnect timeout.  If the socket is closed due to an error, it will 
+     * attempt to automatically reconnect after the given interval.  
+     * @param timeout The timeout (in milliseconds) to wait after disconnection, before attempting to connect again.
+     * @return Self for chaining.
+     */
+    public WebSocket autoReconnect(long timeout) {
+        autoReconnectTimeout = timeout;
+        return this;
     }
     
     public WebSocket(String url) {
@@ -217,28 +246,80 @@ public abstract class WebSocket {
             impl.close();
         }
     }
+
+    private void initReconnect() {
+        if (reconnectTimer == null && autoReconnectTimeout > 0) {
+            reconnectTimer = new Timer();
+            reconnectTimer.schedule(new TimerTask() {
+
+                @Override
+                public void run() {
+                    reconnectTimerThread = Thread.currentThread();
+                    reconnect();
+                }
+
+            }, autoReconnectTimeout, autoReconnectTimeout);
+        }
+    }
     
-    public void connect() {
+    public void reconnect() {
         if (connecting || getReadyState() != WebSocketState.CLOSED) {
             return;
         }
-        if (Display.getInstance().isEdt()) {
-            socketThread = Display.getInstance().startThread(new Runnable() {
-                public void run() {
-                    connect();
+        System.out.println("Attempting to reconnect...");
+        impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
+        impl.setId(nextId++);
+        sockets.put(impl.getId(), this);
+        connecting = false;
+        connectHasBeenCalledAtLeastOnce=false;
+        try {
+            connect();
+        } catch (Throwable t) {
+            System.out.println("Failed to reconnect.  Will make another attempt in "+autoReconnectTimeout+"ms");
+        }
+    }
+    
+    public void connect() {
+        connect(true);
+    }
+    
+    private boolean connectHasBeenCalledAtLeastOnce;
+    private void connect(boolean throwErrorIfNotFirstConnectAttempt) {
+        try {
+            if( throwErrorIfNotFirstConnectAttempt) {
+                
+                if (connectHasBeenCalledAtLeastOnce) {
+                    throw new IllegalStateException("WebSocket.connect() can only be called once.");
                 }
-            }, "WebSocket");
-            socketThread.start();
-            
-        } else {
-            connecting = true;
-            try {
-                impl.setUrl(url);
-                impl.connect();
-            } finally {
-                connecting = false;
+                connectHasBeenCalledAtLeastOnce = true;
+               
             }
-            
+            if (connecting || getReadyState() != WebSocketState.CLOSED) {
+                return;
+            }
+            if (Display.getInstance().isEdt()) {
+                socketThread = Display.getInstance().startThread(new Runnable() {
+                    public void run() {
+                        connect(false);
+                    }
+                }, "WebSocket");
+                socketThread.start();
+
+            } else {
+                connecting = true;
+                // If autoreconnect is on, then we'll enable it during connection
+                // to cover the case where it doesn't successfully connect.
+                initReconnect();
+                try {
+                    impl.setUrl(url);
+                    impl.connect();
+                } finally {
+                    connecting = false;
+                }
+
+            }
+        } catch (Throwable t) {
+            onError(new WebSocketException("Exception occurred while trying to connect.", 500, t));
         }
     }
     
