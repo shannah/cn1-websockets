@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Neo Visionaries Inc.
+ * Copyright (C) 2015-2017 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,18 @@ package com.neovisionaries.ws.client;
 
 
 /**
- * Web socket error codes.
+ * WebSocket error codes.
  *
  * @see WebSocketException#getError()
  */
 public enum WebSocketError
 {
     /**
-     * The current state of the web socket is not CREATED.
+     * The current state of the WebSocket is not CREATED.
      *
      * <p>
      * This error occurs if {@link WebSocket#connect()} is called
-     * when the state of the web socket is not {@link
+     * when the state of the WebSocket is not {@link
      * WebSocketState#CREATED CREATED}.
      * </p>
      */
@@ -72,7 +72,7 @@ public enum WebSocketError
 
 
     /**
-     * The status code of the opening handshake response is not Switching Protocols.
+     * The status code of the opening handshake response is not {@code 101 Switching Protocols}.
      */
     NOT_SWITCHING_PROTOCOLS,
 
@@ -84,55 +84,64 @@ public enum WebSocketError
 
 
     /**
-     * The opening handshake response does not contain 'Upgrade' header.
+     * The opening handshake response does not contain {@code Upgrade} header.
      */
     NO_UPGRADE_HEADER,
 
 
     /**
-     * 'websocket' was not found in 'Upgrade' header.
+     * {@code websocket} was not found in {@code Upgrade} header.
      */
     NO_WEBSOCKET_IN_UPGRADE_HEADER,
 
 
     /**
-     * The opening handshake response does not contain 'Connection' header.
+     * The opening handshake response does not contain {@code Connection} header.
      */
     NO_CONNECTION_HEADER,
 
 
     /**
-     * 'Upgrade' was not found in 'Connection' header.
+     * {@code Upgrade} was not found in {@code Connection} header.
      */
     NO_UPGRADE_IN_CONNECTION_HEADER,
 
 
     /**
-     * The opening handshake response does not contain 'Sec-WebSocket-Accept' header.
+     * The opening handshake response does not contain {@code Sec-WebSocket-Accept} header.
      */
     NO_SEC_WEBSOCKET_ACCEPT_HEADER,
 
 
     /**
-     * The value of 'Sec-WebSocket-Accept' header is different from the expected one.
+     * The value of {@code Sec-WebSocket-Accept} header is different from the expected one.
      */
     UNEXPECTED_SEC_WEBSOCKET_ACCEPT_HEADER,
 
 
     /**
-     * The value in 'Sec-WebSocket-Extensions' failed to be parsed.
+     * The value in {@code Sec-WebSocket-Extensions} failed to be parsed.
      */
     EXTENSION_PARSE_ERROR,
 
 
     /**
-     * The extension contained in the Sec-WebSocket-Extensions header is not supported.
+     * The extension contained in {@code Sec-WebSocket-Extensions} header is not supported.
      */
     UNSUPPORTED_EXTENSION,
 
 
     /**
-     * The protocol contained in the Sec-WebSocket-Protocol header is not supported.
+     * The combination of the extensions contained in {@code Sec-WebSocket-Extensions} header
+     * causes conflicts.
+     *
+     * @since 1.15
+     */
+    EXTENSIONS_CONFLICT,
+
+
+    /**
+     * The protocol contained in {@code Sec-WebSocket-Protocol} header is not supported.
      */
     UNSUPPORTED_PROTOCOL,
 
@@ -156,19 +165,19 @@ public enum WebSocketError
 
 
     /**
-     * OutOfMemoryError occurred during a trial to allocate a memory area for a frame's payload.
+     * {@link OutOfMemoryError} occurred during a trial to allocate a memory area for a frame's payload.
      */
     INSUFFICIENT_MEMORY_FOR_PAYLOAD,
 
 
     /**
-     * Interruption occurred while a frame was being read from the web socket.
+     * Interruption occurred while a frame was being read from the WebSocket.
      */
     INTERRUPTED_IN_READING,
 
 
     /**
-     * An I/O error occurred while a frame was being read from the web socket.
+     * An I/O error occurred while a frame was being read from the WebSocket.
      */
     IO_ERROR_IN_READING,
 
@@ -203,8 +212,36 @@ public enum WebSocketError
      * By calling {@link WebSocket#setExtended(boolean) WebSocket.setExtended}{@code
      * (true)}, you can skip the validity check of the RSV1/RSV2/RSV3 bits.
      * </p>
+     *
+     * <p>
+     * This error code is not used in version 1.15 and after.
+     * </p>
      */
     NON_ZERO_RESERVED_BITS,
+
+
+    /**
+     * A reserved bit of a frame has an unexpected value.
+     *
+     * <blockquote>
+     * <p>From RFC 6455, <a href="http://tools.ietf.org/html/rfc6455#section-5.2"
+     * >5.2 Base Framing Protocol</a>; RSV1, RSV2, RSV3:</p>
+     * <p><i>
+     * MUST be 0 unless an extension is negotiated that defines meanings
+     * for non-zero values.  If a nonzero value is received and none of
+     * the negotiated extensions defines the meaning of such a nonzero
+     * value, the receiving endpoint MUST Fail the WebSocket Connection.
+     * </i></p>
+     * </blockquote>
+     *
+     * <p>
+     * By calling {@link WebSocket#setExtended(boolean) WebSocket.setExtended}{@code
+     * (true)}, you can skip the validity check of the RSV1/RSV2/RSV3 bits.
+     * </p>
+     *
+     * @since 1.15
+     */
+    UNEXPECTED_RESERVED_BIT,
 
 
     /**
@@ -299,5 +336,120 @@ public enum WebSocketError
      * frames to the server).
      */
     UNEXPECTED_ERROR_IN_WRITING_THREAD,
+
+
+    /**
+     * {@code permessage-deflate} extension contains an unsupported parameter.
+     *
+     * <p>
+     * See <a href="https://tools.ietf.org/html/rfc7692#section-7">7. The
+     * "permessage-deflate" Extension</a> in
+     * <a href="https://tools.ietf.org/html/rfc7692">RFC 7692</a> for details.
+     * </p>
+     *
+     * @since 1.15
+     */
+    PERMESSAGE_DEFLATE_UNSUPPORTED_PARAMETER,
+
+
+    /**
+     * The value of {@code server_max_window_bits} parameter or {@code
+     * client_max_window_bits} parameter of {@code permessage-deflate}
+     * extension is invalid.
+     *
+     * <p>
+     * See <a href="https://tools.ietf.org/html/rfc7692#section-7.1.2">7.1.2.
+     * Limiting the LZ77 Sliding Window Size</a> in
+     * <a href="https://tools.ietf.org/html/rfc7692">RFC 7692</a> for details.
+     * </p>
+     *
+     * @since 1.15
+     */
+    PERMESSAGE_DEFLATE_INVALID_MAX_WINDOW_BITS,
+
+
+    /**
+     * Compression failed.
+     *
+     * @since 1.17
+     */
+    COMPRESSION_ERROR,
+
+
+    /**
+     * Decompression failed.
+     *
+     * @since 1.16
+     */
+    DECOMPRESSION_ERROR,
+
+
+    /**
+     * {@link java.net.Socket#connect(java.net.SocketAddress, int)
+     * Socket.connect()} failed.
+     *
+     * @since 1.20
+     */
+    SOCKET_CONNECT_ERROR,
+
+
+    /**
+     * Handshake with a proxy server failed.
+     *
+     * @since 1.20
+     */
+    PROXY_HANDSHAKE_ERROR,
+
+
+    /**
+     * Failed to overlay an existing socket.
+     *
+     * @since 1.20
+     */
+    SOCKET_OVERLAY_ERROR,
+
+
+    /**
+     * SSL handshake with a WebSocket endpoint failed.
+     *
+     * @since 1.20
+     */
+    SSL_HANDSHAKE_ERROR,
+
+
+    /**
+     * No more frame can be read because the end of the input stream has been reached.
+     *
+     * <p>
+     * This happens when the WebSocket connection is closed without receiving a
+     * <a href="https://tools.ietf.org/html/rfc6455#section-5.5.1">close frame</a>
+     * from the WebSocket server. Strictly speaking, it is a violation against
+     * <a href="https://tools.ietf.org/html/rfc6455">RFC 6455</a>, but it seems some
+     * server implementations sometimes close a connection without sending a close
+     * frame.
+     * </p>
+     *
+     * @since 1.29
+     */
+    NO_MORE_FRAME,
+
+
+    /**
+     * The certificate of the peer does not match the expected hostname.
+     *
+     * <p>
+     * When {@link WebSocketException#getError()} returns this error code, the
+     * {@link WebSocketException} can be cast to {@link HostnameUnverifiedException}
+     * through which you can get the
+     * </p>
+     *
+     * <p>
+     * See <a href='https://github.com/TakahikoKawasaki/nv-websocket-client/pull/107'
+     * >Verify that certificate is valid for server hostname (#107)</a>.
+     * </p>
+     *
+     * @since 2.1
+     */
+    HOSTNAME_UNVERIFIED,
     ;
 }

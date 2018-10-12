@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Neo Visionaries Inc.
+ * Copyright (C) 2015-2017 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import static com.neovisionaries.ws.client.WebSocketState.CLOSING;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -34,25 +35,29 @@ import java.util.TimerTask;
 import com.neovisionaries.ws.client.StateManager.CloseInitiator;
 
 
-class ReadingThread extends Thread
+class ReadingThread extends WebSocketThread
 {
-    private static final long INTERRUPTION_TIMER_DELAY = 60 * 1000;
-    private final WebSocket mWebSocket;
     private boolean mStopRequested;
     private WebSocketFrame mCloseFrame;
     private List<WebSocketFrame> mContinuation = new ArrayList<WebSocketFrame>();
+    private final PerMessageCompressionExtension mPMCE;
+    private Object mCloseLock = new Object();
+    private Timer mCloseTimer;
+    private CloseTask mCloseTask;
+    private long mCloseDelay;
+    private boolean mNotWaitForCloseFrame;
 
 
     public ReadingThread(WebSocket websocket)
     {
-        super("ReadingThread");
+        super("ReadingThread", websocket, ThreadType.READING_THREAD);
 
-        mWebSocket = websocket;
+        mPMCE = websocket.getPerMessageCompressionExtension();
     }
 
 
     @Override
-    public void run()
+    public void runMain()
     {
         try
         {
@@ -63,13 +68,16 @@ class ReadingThread extends Thread
             // An uncaught throwable was detected in the reading thread.
             WebSocketException cause = new WebSocketException(
                 WebSocketError.UNEXPECTED_ERROR_IN_READING_THREAD,
-                "An uncaught throwable was detected in the reading thread", t);
+                "An uncaught throwable was detected in the reading thread: " + t.getMessage(), t);
 
             // Notify the listeners.
             ListenerManager manager = mWebSocket.getListenerManager();
             manager.callOnError(cause);
             manager.callOnUnexpectedError(cause);
         }
+
+        // Notify this reading thread finished.
+        notifyFinished();
     }
 
 
@@ -108,18 +116,39 @@ class ReadingThread extends Thread
         // Wait for a close frame if one has not been received yet.
         waitForCloseFrame();
 
-        // Notify this reading thread finished.
-        notifyFinished();
+        // Cancel a task which calls Socket.close() if running.
+        cancelClose();
     }
 
 
-    void requestStop()
+    void requestStop(long closeDelay)
     {
         synchronized (this)
         {
+            if (mStopRequested)
+            {
+                return;
+            }
+
             mStopRequested = true;
-            interrupt();
         }
+
+        // interrupt() may not interrupt a blocking socket read(), so calling
+        // interrupt() here may not work. interrupt() in Java is different
+        // from signal-based interruption in C which unblocks a read() system
+        // call. Anyway, let's mark this thread as interrupted.
+        interrupt();
+
+        // To surely unblock a read() call, Socket.close() needs to be called.
+        // Or, shutdownInterrupt() may work, but it is not explicitly stated
+        // in the JavaDoc. In either case, interruption should not be executed
+        // now because a close frame from the server should be waited for.
+        //
+        // So, let's schedule a task with some delay which calls Socket.close().
+        // However, in normal cases, a close frame will arrive from the server
+        // before the task calls Socket.close().
+        mCloseDelay = closeDelay;
+        scheduleClose();
     }
 
 
@@ -199,6 +228,12 @@ class ReadingThread extends Thread
      */
     private void callOnTextMessage(byte[] data)
     {
+        if (mWebSocket.isDirectTextMessage())
+        {
+            mWebSocket.getListenerManager().callOnTextMessage(data);
+            return;
+        }
+
         try
         {
             // Interpret the byte array as a string.
@@ -208,12 +243,12 @@ class ReadingThread extends Thread
             // Call onTextMessage() method of the listeners.
             callOnTextMessage(message);
         }
-        catch (Throwable e)
+        catch (Throwable t)
         {
             // Failed to convert payload data into a string.
             WebSocketException wse = new WebSocketException(
                 WebSocketError.TEXT_MESSAGE_CONSTRUCTION_ERROR,
-                "Failed to convert payload data into a string.", e);
+                "Failed to convert payload data into a string: " + t.getMessage(), t);
 
             // Notify the listeners that text message construction failed.
             callOnError(wse);
@@ -273,6 +308,16 @@ class ReadingThread extends Thread
 
 
     /**
+     * Call {@link WebSocketListener#onMessageDecompressionError(WebSocket, WebSocketException, byte[])
+     * onMessageDecompressionError} method of the listeners.
+     */
+    private void callOnMessageDecompressionError(WebSocketException cause, byte[] compressed)
+    {
+        mWebSocket.getListenerManager().callOnMessageDecompressionError(cause, compressed);
+    }
+
+
+    /**
      * Call {@link WebSocketListener#onTextMessageError(WebSocket, WebSocketException, byte[])
      * onTextMessageError} method of the listeners.
      */
@@ -286,7 +331,6 @@ class ReadingThread extends Thread
     {
         WebSocketFrame frame = null;
         WebSocketException wse = null;
-        boolean intentionallyInterrupted = false;
 
         try
         {
@@ -303,23 +347,33 @@ class ReadingThread extends Thread
         {
             if (mStopRequested)
             {
-                // Intentionally interrupted.
-                intentionallyInterrupted = true;
+                // Thread.interrupt() interrupted a blocking socket read operation.
+                // This thread has been interrupted intentionally.
+                return null;
             }
             else
             {
                 // Interruption occurred while a frame was being read from the web socket.
                 wse = new WebSocketException(
                     WebSocketError.INTERRUPTED_IN_READING,
-                    "Interruption occurred while a frame was being read from the web socket.", e);
+                    "Interruption occurred while a frame was being read from the web socket: " + e.getMessage(), e);
             }
         }
         catch (IOException e)
         {
-            // An I/O error occurred while a frame was being read from the web socket.
-            wse = new WebSocketException(
-                WebSocketError.IO_ERROR_IN_READING,
-                "An I/O error occurred while a frame was being read from the web socket.", e);
+            if (mStopRequested && isInterrupted())
+            {
+                // Socket.close() interrupted a blocking socket read operation.
+                // This thread has been interrupted intentionally.
+                return null;
+            }
+            else
+            {
+                // An I/O error occurred while a frame was being read from the web socket.
+                wse = new WebSocketException(
+                    WebSocketError.IO_ERROR_IN_READING,
+                    "An I/O error occurred while a frame was being read from the web socket: " + e.getMessage(), e);
+            }
         }
         catch (WebSocketException e)
         {
@@ -327,20 +381,36 @@ class ReadingThread extends Thread
             wse = e;
         }
 
-        if (intentionallyInterrupted == false)
+        boolean error = true;
+
+        // If the input stream of the WebSocket connection has reached the end
+        // without receiving a close frame from the server.
+        if (wse instanceof NoMoreFrameException)
+        {
+            // Not wait for a close frame in waitForCloseFrame() which will be called later.
+            mNotWaitForCloseFrame = true;
+
+            // If the configuration of the WebSocket instance allows the behavior.
+            if (mWebSocket.isMissingCloseFrameAllowed())
+            {
+                error = false;
+            }
+        }
+
+        if (error)
         {
             // Notify the listeners that an error occurred while a frame was being read.
             callOnError(wse);
             callOnFrameError(wse, frame);
-
-            // Create a close frame.
-            WebSocketFrame closeFrame = createCloseFrame(wse);
-
-            // Send the close frame.
-            mWebSocket.sendFrame(closeFrame);
         }
 
-        // A frame is not available.
+        // Create a close frame.
+        WebSocketFrame closeFrame = createCloseFrame(wse);
+
+        // Send the close frame.
+        mWebSocket.sendFrame(closeFrame);
+
+        // No WebSocket frame is available.
         return null;
     }
 
@@ -378,16 +448,92 @@ class ReadingThread extends Thread
         // The specification requires that these bits "be 0 unless an extension
         // is negotiated that defines meanings for non-zero values".
 
-        if (frame.getRsv1() || frame.getRsv2() || frame.getRsv3())
-        {
-            String message = String.format(
-                "At least one of the reserved bits of a frame is set: RSV1=%s,RSV2=%s,RSV3=%s",
-                frame.getRsv1(), frame.getRsv2(), frame.getRsv3());
+        verifyReservedBit1(frame);
+        verifyReservedBit2(frame);
+        verifyReservedBit3(frame);
+    }
 
-            // At least one of the reserved bits of a frame is set.
-            throw new WebSocketException(
-                WebSocketError.NON_ZERO_RESERVED_BITS, message);
+
+    /**
+     * Verify the RSV1 bit of a frame.
+     */
+    private void verifyReservedBit1(WebSocketFrame frame) throws WebSocketException
+    {
+        // If a per-message compression extension has been agreed.
+        if (mPMCE != null)
+        {
+            // Verify the RSV1 bit using the rule described in RFC 7692.
+            boolean verified = verifyReservedBit1ForPMCE(frame);
+
+            if (verified)
+            {
+                return;
+            }
         }
+
+        if (frame.getRsv1() == false)
+        {
+            // No problem.
+            return;
+        }
+
+        // The RSV1 bit of a frame is set unexpectedly.
+        throw new WebSocketException(
+            WebSocketError.UNEXPECTED_RESERVED_BIT, "The RSV1 bit of a frame is set unexpectedly.");
+    }
+
+
+    /**
+     * Verify the RSV1 bit of a frame using the rule described in RFC 7692.
+     * See <a href="https://tools.ietf.org/html/rfc7692#section-6">6. Framing</a>
+     * in <a href="https://tools.ietf.org/html/rfc7692">RFC 7692</a> for details.
+     */
+    private boolean verifyReservedBit1ForPMCE(WebSocketFrame frame) throws WebSocketException
+    {
+        if (frame.isTextFrame() || frame.isBinaryFrame())
+        {
+            // The RSV1 of the first frame of a message is called
+            // "Per-Message Compressed" bit. It can be either 0 or 1.
+            // In other words, any value is okay.
+            return true;
+        }
+
+        // Further checking is required.
+        return false;
+    }
+
+
+    /**
+     * Verify the RSV2 bit of a frame.
+     */
+    private void verifyReservedBit2(WebSocketFrame frame) throws WebSocketException
+    {
+        if (frame.getRsv2() == false)
+        {
+            // No problem.
+            return;
+        }
+
+        // The RSV2 bit of a frame is set unexpectedly.
+        throw new WebSocketException(
+            WebSocketError.UNEXPECTED_RESERVED_BIT, "The RSV2 bit of a frame is set unexpectedly.");
+    }
+
+
+    /**
+     * Verify the RSV3 bit of a frame.
+     */
+    private void verifyReservedBit3(WebSocketFrame frame) throws WebSocketException
+    {
+        if (frame.getRsv3() == false)
+        {
+            // No problem.
+            return;
+        }
+
+        // The RSV3 bit of a frame is set unexpectedly.
+        throw new WebSocketException(
+            WebSocketError.UNEXPECTED_RESERVED_BIT, "The RSV3 bit of a frame is set unexpectedly.");
     }
 
 
@@ -551,6 +697,7 @@ class ReadingThread extends Thread
 
             case INSUFFICENT_DATA:
             case INVALID_PAYLOAD_LENGTH:
+            case NO_MORE_FRAME:
                 closeCode = WebSocketCloseCode.UNCONFORMED;
                 break;
 
@@ -562,6 +709,7 @@ class ReadingThread extends Thread
             // In this.verifyFrame(WebSocketFrame)
 
             case NON_ZERO_RESERVED_BITS:
+            case UNEXPECTED_RESERVED_BIT:
             case UNKNOWN_OPCODE:
             case FRAME_MASKED:
             case FRAGMENTED_CONTROL_FRAME:
@@ -637,8 +785,9 @@ class ReadingThread extends Thread
             return true;
         }
 
-        // Concatenate payloads of the frames.
-        byte[] data = concatenatePayloads(mContinuation);
+        // Concatenate payloads of the frames. Decompression is performed
+        // when necessary.
+        byte[] data = getMessage(mContinuation);
 
         // If the concatenation failed.
         if (data == null)
@@ -664,6 +813,30 @@ class ReadingThread extends Thread
 
         // Keep reading.
         return true;
+    }
+
+
+    private byte[] getMessage(List<WebSocketFrame> frames)
+    {
+        // Concatenate payloads of the frames.
+        byte[] data = concatenatePayloads(mContinuation);
+
+        // If the concatenation failed.
+        if (data == null)
+        {
+            // Stop reading.
+            return null;
+        }
+
+        // If a per-message compression extension is enabled and
+        // the Per-Message Compressed bit of the first frame is set.
+        if (mPMCE != null && frames.get(0).getRsv1())
+        {
+            // Decompress the data.
+            data = decompress(data);
+        }
+
+        return data;
     }
 
 
@@ -706,7 +879,7 @@ class ReadingThread extends Thread
         // Create a WebSocketException which has a cause.
         WebSocketException wse = new WebSocketException(
             WebSocketError.MESSAGE_CONSTRUCTION_ERROR,
-            "Failed to concatenate payloads of multiple frames to construct a message.", cause);
+            "Failed to concatenate payloads of multiple frames to construct a message: " + cause.getMessage(), cause);
 
         // Notify the listeners that message construction failed.
         callOnError(wse);
@@ -716,6 +889,54 @@ class ReadingThread extends Thread
         // indicates that the message is too big to process.
         WebSocketFrame frame = WebSocketFrame
             .createCloseFrame(WebSocketCloseCode.OVERSIZE, wse.getMessage());
+
+        // Send the close frame.
+        mWebSocket.sendFrame(frame);
+
+        // Failed to construct a message.
+        return null;
+    }
+
+
+    private byte[] getMessage(WebSocketFrame frame)
+    {
+        // The raw payload of the frame.
+        byte[] payload = frame.getPayload();
+
+        // If a per-message compression extension is enabled and
+        // the Per-Message Compressed bit of the frame is set.
+        if (mPMCE != null && frame.getRsv1())
+        {
+            // Decompress the payload.
+            payload = decompress(payload);
+        }
+
+        return payload;
+    }
+
+
+    private byte[] decompress(byte[] input)
+    {
+        WebSocketException wse;
+
+        try
+        {
+            // Decompress the message.
+            return mPMCE.decompress(input);
+        }
+        catch (WebSocketException e)
+        {
+            wse = e;
+        }
+
+        // Notify the listeners that decompression failed.
+        callOnError(wse);
+        callOnMessageDecompressionError(wse, input);
+
+        // Create a close frame with a close code of 1003 which
+        // indicates that the message cannot be accepted.
+        WebSocketFrame frame = WebSocketFrame
+            .createCloseFrame(WebSocketCloseCode.UNACCEPTABLE, wse.getMessage());
 
         // Send the close frame.
         mWebSocket.sendFrame(frame);
@@ -740,8 +961,12 @@ class ReadingThread extends Thread
             return true;
         }
 
+        // Get the payload of the frame. Decompression is performed
+        // when necessary.
+        byte[] payload = getMessage(frame);
+
         // Notify the listeners that a text message was received.
-        callOnTextMessage(frame.getPayload());
+        callOnTextMessage(payload);
 
         // Keep reading.
         return true;
@@ -763,8 +988,12 @@ class ReadingThread extends Thread
             return true;
         }
 
+        // Get the payload of the frame. Decompression is performed
+        // when necessary.
+        byte[] payload = getMessage(frame);
+
         // Notify the listeners that a binary message was received.
-        callOnBinaryMessage(frame.getPayload());
+        callOnBinaryMessage(payload);
 
         // Keep reading.
         return true;
@@ -858,6 +1087,11 @@ class ReadingThread extends Thread
 
     private void waitForCloseFrame()
     {
+        if (mNotWaitForCloseFrame)
+        {
+            return;
+        }
+
         // If a close frame has already been received.
         if (mCloseFrame != null)
         {
@@ -866,8 +1100,9 @@ class ReadingThread extends Thread
 
         WebSocketFrame frame = null;
 
-        // Schedule a timer to prevent from waiting forever.
-        Timer timer = scheduleInterruptionTimer();
+        // Schedule a task which calls Socket.close() to prevent
+        // the code below from looping forever.
+        scheduleClose();
 
         while (true)
         {
@@ -876,7 +1111,7 @@ class ReadingThread extends Thread
                 // Read a frame from the server.
                 frame = mWebSocket.getInput().readFrame();
             }
-            catch (Exception e)
+            catch (Throwable t)
             {
                 // Give up receiving a close frame.
                 break;
@@ -889,35 +1124,78 @@ class ReadingThread extends Thread
                 mCloseFrame = frame;
                 break;
             }
-        }
 
-        // Cancel the timer for the case where a close frame was received.
-        timer.cancel();
-    }
-
-
-    private Timer scheduleInterruptionTimer()
-    {
-        Timer timer = new Timer("ReadingThreadInterruptionTimer");
-
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run()
+            if (isInterrupted())
             {
-                if (ReadingThread.this.isAlive())
-                {
-                    // Interrupt WebSocketInputStream.readFrame().
-                    ReadingThread.this.interrupt();
-                }
+                break;
             }
-        }, INTERRUPTION_TIMER_DELAY);
-
-        return timer;
+        }
     }
 
 
     private void notifyFinished()
     {
         mWebSocket.onReadingThreadFinished(mCloseFrame);
+    }
+
+
+    private void scheduleClose()
+    {
+        synchronized (mCloseLock)
+        {
+            cancelCloseTask();
+            scheduleCloseTask();
+        }
+    }
+
+
+    private void scheduleCloseTask()
+    {
+        mCloseTask  = new CloseTask();
+        mCloseTimer = new Timer("ReadingThreadCloseTimer");
+        mCloseTimer.schedule(mCloseTask, mCloseDelay);
+    }
+
+
+    private void cancelClose()
+    {
+        synchronized (mCloseLock)
+        {
+            cancelCloseTask();
+        }
+    }
+
+
+    private void cancelCloseTask()
+    {
+        if (mCloseTimer != null)
+        {
+            mCloseTimer.cancel();
+            mCloseTimer = null;
+        }
+
+        if (mCloseTask != null)
+        {
+            mCloseTask.cancel();
+            mCloseTask = null;
+        }
+    }
+
+
+    private class CloseTask extends TimerTask
+    {
+        @Override
+        public void run()
+        {
+            try
+            {
+                Socket socket = mWebSocket.getSocket();
+                socket.close();
+            }
+            catch (Throwable t)
+            {
+                // Ignore.
+            }
+        }
     }
 }

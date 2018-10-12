@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Neo Visionaries Inc.
+ * Copyright (C) 2015-2016 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,8 +40,25 @@ class WebSocketInputStream extends FilterInputStream
         // Buffer.
         byte[] buffer = new byte[8];
 
-        // Read the first two bytes.
-        readBytes(buffer, 2);
+        try
+        {
+            // Read the first two bytes.
+            readBytes(buffer, 2);
+        }
+        catch (InsufficientDataException e)
+        {
+            if (e.getReadByteCount() == 0)
+            {
+                // The connection has been closed without receiving a close frame.
+                // Strictly speaking, this is a violation against RFC 6455.
+                throw new NoMoreFrameException();
+            }
+            else
+            {
+                // Re-throw the exception.
+                throw e;
+            }
+        }
 
         // FIN
         boolean fin = ((buffer[0] & 0x80) != 0);
@@ -138,24 +155,23 @@ class WebSocketInputStream extends FilterInputStream
     }
 
 
-    private void readBytes(byte[] buffer, int length) throws IOException, WebSocketException
+    void readBytes(byte[] buffer, int length) throws IOException, WebSocketException
     {
         // Read
-    	int total = 0;
-    	while (total < length)
-    	{
-    		int count = read(buffer, total, length-total);
-    		
-	        if (count <= 0)
-	        {
-	            // The end of the stream has been reached unexpectedly.
-	            throw new WebSocketException(
-	                WebSocketError.INSUFFICENT_DATA,
-	                "The end of the stream has been reached unexpectedly.");
-	        }
-	        
-	        total += count;
-    	}
+        int total = 0;
+
+        while (total < length)
+        {
+            int count = read(buffer, total, length - total);
+
+            if (count <= 0)
+            {
+                // The end of the stream has been reached unexpectedly.
+                throw new InsufficientDataException(length, total);
+            }
+
+            total += count;
+        }
     }
 
 
@@ -192,7 +208,7 @@ class WebSocketInputStream extends FilterInputStream
             skipQuietly(payloadLength);
             throw new WebSocketException(
                 WebSocketError.INSUFFICIENT_MEMORY_FOR_PAYLOAD,
-                "OutOfMemoryError occurred during a trial to allocate a memory area for a frame's payload.");
+                "OutOfMemoryError occurred during a trial to allocate a memory area for a frame's payload: " + e.getMessage(), e);
         }
 
         // Read the payload.

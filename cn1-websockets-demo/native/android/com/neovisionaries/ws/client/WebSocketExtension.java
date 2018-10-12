@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Neo Visionaries Inc.
+ * Copyright (C) 2015-2016 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,21 @@ import java.util.Map;
 
 /**
  * A class to hold the name and the parameters of
- * a web socket extension.
+ * a WebSocket extension.
  */
 public class WebSocketExtension
 {
+    /**
+     * The name of <code>permessage-deflate</code> extension that is
+     * defined in <a href="https://tools.ietf.org/html/rfc7692#section-7"
+     * >7&#46; The "permessage-deflate" Extension</a> in <a href=
+     * "https://tools.ietf.org/html/rfc7692">RFC 7692</a>.
+     *
+     * @since 1.17
+     */
+    public static final String PERMESSAGE_DEFLATE = "permessage-deflate";
+
+
     private final String mName;
     private final Map<String, String> mParameters;
 
@@ -205,6 +216,29 @@ public class WebSocketExtension
     }
 
 
+    /**
+     * Validate this instance. This method is expected to be overridden.
+     */
+    void validate() throws WebSocketException
+    {
+    }
+
+
+    /**
+     * Parse a string as a {@link WebSocketExtension}. The input string
+     * should comply with the format described in <a href=
+     * "https://tools.ietf.org/html/rfc6455#section-9.1">9.1. Negotiating
+     * Extensions</a> in <a href="https://tools.ietf.org/html/rfc6455"
+     * >RFC 6455</a>.
+     *
+     * @param string
+     *         A string that represents a WebSocket extension.
+     *
+     * @return
+     *         A new {@link WebSocketExtension} instance that represents
+     *         the given string. If the input string does not comply with
+     *         RFC 6455, {@code null} is returned.
+     */
     public static WebSocketExtension parse(String string)
     {
         if (string == null)
@@ -230,8 +264,8 @@ public class WebSocketExtension
             return null;
         }
 
-        // The first element is the extension name.
-        WebSocketExtension extension = new WebSocketExtension(name);
+        // Create an instance for the extension name.
+        WebSocketExtension extension = createInstance(name);
 
         // For each "{key}[={value}]".
         for (int i = 1; i < elements.length; ++i)
@@ -285,5 +319,16 @@ public class WebSocketExtension
         }
 
         return Token.unquote(pair[1]);
+    }
+
+
+    private static WebSocketExtension createInstance(String name)
+    {
+        if (PERMESSAGE_DEFLATE.equals(name))
+        {
+            return new PerMessageDeflateExtension(name);
+        }
+
+        return new WebSocketExtension(name);
     }
 }
