@@ -2,3 +2,8 @@
 /cn1-websockets-demo/build/
 /cn1-websockets-demo/dist/
 .DS_Store
+/cn1-websockets-lib/build/
+/cn1-websockets-lib/dist/
+private
+/cn1-websockets-lib/native
+/cn1-websockets-lib/src

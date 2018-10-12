@@ -92,7 +92,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.openReceived(id);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -105,7 +105,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.messageReceived(id, text);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -118,7 +118,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.messageReceived(id, binary);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -128,7 +128,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                 @Override
                 public void onError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) {
                     try {
-                        WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal());
+                        WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal(), cause);
                     } catch (Throwable t) {
                         Log.e(t);
                     }
@@ -148,7 +148,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         }
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -156,7 +156,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                 }
             });
         } catch (Exception ex) {
-            WebSocket.errorReceived(id, ex.getMessage(), 500);
+            WebSocket.errorReceived(id, ex.getMessage(), 500, ex);
         }
     }
 

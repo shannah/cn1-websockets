@@ -182,6 +182,17 @@ public abstract class WebSocket {
      * @param code 
      */
     public static void errorReceived(int id, String message, int code) {
+        errorReceived(id, message, code, null);
+    }
+    
+    /**
+     * @deprecated Internal callback for native implementations.
+     * @param id
+     * @param message
+     * @param code 
+     * @param cause Exception that caused the error
+     */
+    public static void errorReceived(int id, String message, int code, Throwable cause) {
         WebSocket socket = sockets.get(id);
         if (socket == null) {
             if (message == null) {
@@ -190,7 +201,7 @@ public abstract class WebSocket {
             System.out.println("WebSocket error received: ID="+id+", MSG="+message+", code="+code);
             sockets.remove(id);
         } else {
-            WebSocketException ex = new WebSocketException(message, code);
+            WebSocketException ex = new WebSocketException(message, code, cause);
             try {
                 socket.onError(ex);
             } catch (Throwable t) {
