@@ -253,6 +253,11 @@ public abstract class WebSocket {
     }
     
     public void close() {
+        // https://github.com/shannah/cn1-websockets/issues/14
+        if (reconnectTimer != null) {
+            reconnectTimer.cancel();
+            reconnectTimer = null;
+        }
         if (impl != null && getReadyState() != WebSocketState.CLOSED) {
             impl.close();
         }
