@@ -22,7 +22,9 @@
 package com.codename1.io.websocket;
 
 import com.codename1.io.Log;
+import com.codename1.io.Util;
 import com.codename1.system.NativeLookup;
+import com.codename1.ui.CN;
 import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
@@ -36,12 +38,13 @@ import java.util.TimerTask;
  */
 public abstract class WebSocket {
     private static int nextId = 1;
+    private static final int ERR_TIMEOUT = 999;
     private WebSocketNativeImpl impl;
     private String url;
     private Thread socketThread;
     private boolean connecting;
     private long autoReconnectTimeout;
-    private Timer reconnectTimer;
+    private Timer reconnectTimer, connectTimer;
     private Thread reconnectTimerThread;
     
     public static class WebSocketException extends IOException {
@@ -211,6 +214,36 @@ public abstract class WebSocket {
     }
     
     /**
+     * Waits until the WebSocket connection is ready.  Since websockets are
+     * asyncronous, you can't simply start using the socket immediately after
+     * calling {@link #connect()}, you must wait until the connection is opened
+     * (i.e. after the onOpen() callback.  This method will block until the 
+     * state of the socket is no longer {@link WebSocketState#CONNECTING}.
+     * 
+     * <p>This method is safe for the EDT.  If run on the EDT, it will use {@link CN#invokeAndBlock(java.lang.Runnable) }
+     * under the hood.  If called from another thread, it will actually block the thread.</p>
+     * @return {@literal true} if the socket is opened.  {@literal false} if the socket
+     * is not opened.  It is possible that after waiting the socket has already been closed
+     * or that the connection failed with an error of some kind.  
+     */
+    public boolean waitReady() {
+        if (CN.isEdt()) {
+            final boolean[] res = new boolean[1];
+            CN.invokeAndBlock(new Runnable() {
+                public void run() {
+                    res[0] = waitReady();
+                }
+            });
+            return res[0];
+        }
+        
+        while (getReadyState() == WebSocketState.CONNECTING) {
+            Util.sleep(100);   
+        }
+        return getReadyState() == WebSocketState.OPEN;
+    }
+    
+    /**
      * Sets the auto reconnect timeout.  If the socket is closed due to an error, it will 
      * attempt to automatically reconnect after the given interval.  
      * @param timeout The timeout (in milliseconds) to wait after disconnection, before attempting to connect again.
@@ -258,9 +291,14 @@ public abstract class WebSocket {
             reconnectTimer.cancel();
             reconnectTimer = null;
         }
+        if (connectTimer != null) {
+            connectTimer.cancel();
+            connectTimer = null;
+        }
         if (impl != null && getReadyState() != WebSocketState.CLOSED) {
             impl.close();
         }
+        connecting = false;
     }
 
     private void initReconnect() {
@@ -278,6 +316,9 @@ public abstract class WebSocket {
         }
     }
     
+    /**
+     * Tries to reconnect to the webservice after it has been closed.
+     */
     public void reconnect() {
         if (connecting || getReadyState() != WebSocketState.CLOSED) {
             return;
@@ -295,6 +336,36 @@ public abstract class WebSocket {
         }
     }
     
+    /**
+     * Connects to the websocket with a timeout.  If it hasn't connected by the time the timeout
+     * has elapsed, then a WebSocketException will be posted to the {@link #onError(java.lang.Exception) } method with
+     * code {@link #ERR_TIMEOUT}, and the connection will be closed.
+     * @param timeout The timeout in milliseconds.  Values {@literal <= 0} mean infinite timeout.
+     */
+    public void connect(int timeout) {
+        if (timeout > 0) {
+            connectTimer = new Timer();
+            connectTimer.schedule(new TimerTask() {
+                public void run() {
+                    connectTimer = null;
+                    if (connecting) {
+                        try {
+                            onError(new WebSocketException("WebSocket connect timeout", ERR_TIMEOUT));
+                            close();
+                        } catch (Throwable t) {
+                            Log.e(t);
+                        }
+                    }
+                }
+            }, timeout);
+        } 
+        connect();
+        
+    }
+    
+    /**
+     * Attempts to connect to the webservice.
+     */
     public void connect() {
         connect(true);
     }
@@ -331,6 +402,10 @@ public abstract class WebSocket {
                     impl.connect();
                 } finally {
                     connecting = false;
+                    if (connectTimer != null) {
+                        connectTimer.cancel();
+                        connectTimer = null;
+                    }
                 }
 
             }

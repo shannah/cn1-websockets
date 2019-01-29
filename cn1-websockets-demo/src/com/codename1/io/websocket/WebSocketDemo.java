@@ -135,7 +135,45 @@ public class WebSocketDemo {
         
     }
     
+    private void testTimeouts() {
+        WebSocket ws = new WebSocket("http://10.0.1.77/ws") {
+            @Override
+            protected void onError(Exception ex) {
+                Log.e(ex);
+            }
+
+            @Override
+            protected void onOpen() {
+                Log.p("Opened");
+            }
+
+            @Override
+            protected void onClose(int statusCode, String reason) {
+                Log.p("Closed "+statusCode+", "+reason);
+            }
+
+            @Override
+            protected void onMessage(String message) {
+                
+            }
+
+            @Override
+            protected void onMessage(byte[] message) {
+                
+            }
+        };
+        System.out.println("Trying to connect");
+        ws.connect(5000);
+        Form f = new Form("Hello");
+        f.add(new Label("World"));
+        f.show();
+    }
+    
     public void start() {
+        if (true) {
+            testTimeouts();
+            return;
+        }
         System.out.println("About to start socket");
         
         sock = new WebSocket(SERVER_URL) {
