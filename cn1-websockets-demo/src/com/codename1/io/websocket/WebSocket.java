@@ -46,6 +46,7 @@ public abstract class WebSocket {
     private long autoReconnectTimeout;
     private Timer reconnectTimer, connectTimer;
     private Thread reconnectTimerThread;
+    private int connectTimeout;
     
     public static class WebSocketException extends IOException {
         private final int code;
@@ -330,7 +331,7 @@ public abstract class WebSocket {
         connecting = false;
         connectHasBeenCalledAtLeastOnce=false;
         try {
-            connect();
+            connect(connectTimeout);
         } catch (Throwable t) {
             System.out.println("Failed to reconnect.  Will make another attempt in "+autoReconnectTimeout+"ms");
         }
@@ -343,6 +344,7 @@ public abstract class WebSocket {
      * @param timeout The timeout in milliseconds.  Values {@literal <= 0} mean infinite timeout.
      */
     public void connect(int timeout) {
+        connectTimeout = timeout;
         if (timeout > 0) {
             connectTimer = new Timer();
             connectTimer.schedule(new TimerTask() {
