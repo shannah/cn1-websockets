@@ -33,6 +33,7 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFrame;
+import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -45,7 +46,22 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
     int id;
 
     public void close() {
+        if (client == null) {
+            return;
+        }
         client.sendClose();
+        
+        if (client.getState() == CONNECTING) {
+            try {
+                client.disconnect();
+            } catch (Throwable t){}
+            try {
+                client.getSocket().close();
+            
+            } catch (Throwable t){}
+            
+            
+        }
     }
 
     public void sendBytes(byte[] message) {
