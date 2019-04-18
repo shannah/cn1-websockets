@@ -352,9 +352,9 @@ public abstract class WebSocket {
                     connectTimer = null;
                     if (connecting) {
                         try {
-                            initReconnect();
                             onError(new WebSocketException("WebSocket connect timeout", ERR_TIMEOUT));
                             close();
+                            initReconnect();
                         } catch (Throwable t) {
                             Log.e(t);
                         }
