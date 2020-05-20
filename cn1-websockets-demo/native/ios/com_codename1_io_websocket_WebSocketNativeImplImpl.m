@@ -70,15 +70,24 @@
 extern JAVA_OBJECT fromNSString(CN1_THREAD_STATE_MULTI_ARG NSString *str);
 
 - (void)webSocketDidOpen:(SRWebSocket *)newWebSocket {
+    closed = NO;
     com_codename1_io_websocket_WebSocket_openReceived___int(CN1_THREAD_GET_STATE_PASS_ARG id_);
 }
 
 - (void)webSocket:(SRWebSocket *)webSocket didFailWithError:(NSError *)error {
     com_codename1_io_websocket_WebSocket_errorReceived___int_java_lang_String_int(CN1_THREAD_GET_STATE_PASS_ARG id_, fromNSString(CN1_THREAD_GET_STATE_PASS_ARG [error localizedDescription]), [error code] );
+    if (!closed && webSocket.readyState == SR_CLOSED) {
+        closed = YES;
+        com_codename1_io_websocket_WebSocket_closeReceived___int_int_java_lang_String(CN1_THREAD_GET_STATE_PASS_ARG id_ ,1006, fromNSString(CN1_THREAD_GET_STATE_PASS_ARG [error localizedDescription]) );
+    }
 }
 
 - (void)webSocket:(SRWebSocket *)webSocket didCloseWithCode:(NSInteger)code reason:(NSString *)reason wasClean:(BOOL)wasClean {
-    com_codename1_io_websocket_WebSocket_closeReceived___int_int_java_lang_String(CN1_THREAD_GET_STATE_PASS_ARG id_ ,code, fromNSString(CN1_THREAD_GET_STATE_PASS_ARG reason) );
+    if (!closed) {
+        closed = YES;
+        com_codename1_io_websocket_WebSocket_closeReceived___int_int_java_lang_String(CN1_THREAD_GET_STATE_PASS_ARG id_ ,code, fromNSString(CN1_THREAD_GET_STATE_PASS_ARG reason) );
+    }
+    
 }
 
 extern JAVA_INT com_codename1_impl_ios_IOSNative_getNSDataSize___long(CN1_THREAD_STATE_MULTI_ARG JAVA_OBJECT instanceObject, JAVA_LONG nsData);

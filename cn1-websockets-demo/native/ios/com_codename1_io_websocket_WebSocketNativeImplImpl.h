@@ -26,6 +26,7 @@
     SRWebSocket *socket;
     NSString *url;
     int id_;
+    BOOL closed;
 }
 
 -(void)close;

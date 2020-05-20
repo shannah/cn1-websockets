@@ -28,6 +28,7 @@ import com.codename1.ui.CN;
 import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -37,16 +38,43 @@ import java.util.TimerTask;
  * @author shannah
  */
 public abstract class WebSocket {
+
+    /**
+     * Checks whether websocket callbacks (e.g. onMessage, onError, onOpen, onClose) should
+     * be delivered on the EDT.  This is true by default.  Can be disabled using {@link #setCallbacksOnEdt(boolean) }
+     * @return the callbacksOnEdt
+     * @see #setCallbacksOnEdt(boolean) 
+     */
+    public boolean isCallbacksOnEdt() {
+        return callbacksOnEdt;
+    }
+
+    /**
+     * Sets whether websocket callbacks (e.g. onMessage, onError, onOpen, onClose) should be delivered
+     * on the EDT.  This is true by default.
+     * @param callbacksOnEdt the callbacksOnEdt to set
+     * @see #isCallbacksOnEdt() 
+     */
+    public void setCallbacksOnEdt(boolean callbacksOnEdt) {
+        this.callbacksOnEdt = callbacksOnEdt;
+    }
+    
+    private static boolean debugLoggingEnabled = false;
     private static int nextId = 1;
+    private int id;
     private static final int ERR_TIMEOUT = 999;
     private WebSocketNativeImpl impl;
     private String url;
     private Thread socketThread;
+    private boolean callbacksOnEdt=true;
     private boolean connecting;
     private long autoReconnectTimeout;
     private Timer reconnectTimer, connectTimer;
     private Thread reconnectTimerThread;
     private int connectTimeout;
+    // flag to indicate that the connection was closed by us
+    // this will help us to NOT autoreconnect.  https://github.com/shannah/cn1-websockets/issues/16
+    private boolean explicitlyClosed;
     
     public static class WebSocketException extends IOException {
         private final int code;
@@ -64,6 +92,22 @@ public abstract class WebSocket {
         public int getCode(){
             return code;
         }
+    }
+    
+    public static void setDebugLoggingEnabled(boolean enabled) {
+        debugLoggingEnabled = enabled;
+    }
+    
+    public static boolean isDebugLoggingEnabled() {
+        return debugLoggingEnabled;
+    }
+    
+    private static int shouldWrapCallsInThread=-1;
+    private static boolean shouldWrapCallbacksInThread() {
+        if (shouldWrapCallsInThread == -1) {
+            shouldWrapCallsInThread =  "HTML5".equalsIgnoreCase(CN.getPlatformName()) ? 1 : 0;
+        }
+        return shouldWrapCallsInThread == 1;
     }
     
     /**
@@ -86,19 +130,65 @@ public abstract class WebSocket {
         return new byte[len];
     }
     
+    
+    
     /**
      * @deprecated Internal callback for native implementations.
      * @param id
      * @param message 
      */
-    public static void messageReceived(int id, String message) {
-        WebSocket socket = sockets.get(id);
+    public static void messageReceived(final int id, final String message) {
+        if (shouldWrapCallbacksInThread()) {
+            new Thread(new Runnable() {
+                public void run() {
+                    _messageReceived(id, message);
+                }
+            }).start();
+        } else {
+            _messageReceived(id, message);
+        }
+    }
+    
+    private static void log(WebSocket sock, String message) {
+        if (debugLoggingEnabled) {
+            StringBuilder sb = new StringBuilder();
+            if (sock != null) {
+                sb.append("WebSocket["+sock.id+"] > ");
+            } else {
+                sb.append("Websockets > ");
+            }
+            sb.append(message);
+            Log.p(sb.toString());
+        }
+    }
+    
+    private static void _messageReceived(int id, final String message) {
+        final WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
         } else {
             socket.connecting = false;
             try {
-                socket.onMessage(message);
+                if (socket.isCallbacksOnEdt()) {
+                    CN.callSerially(new Runnable() {
+                        public void run() {
+                            try {
+                                if (debugLoggingEnabled) {
+                                    log(socket, "onMessage: "+message);
+                                }
+                                socket.onMessage(message);
+                            } catch (Throwable t) {
+                                Log.e(t);
+                                socket.onError(new WebSocketException(t != null ? t.getMessage() : "Unknown Error", 500));
+                            }
+                        }
+                    });
+                } else {
+                    if (debugLoggingEnabled) {
+                        log(socket, "onMessage: "+message);
+                    }
+                    socket.onMessage(message);
+                }
             } catch (Throwable t) {
                 Log.e(t);
                 socket.onError(new WebSocketException(t != null ? t.getMessage() : "Unknown Error", 500));
@@ -111,13 +201,43 @@ public abstract class WebSocket {
      * @param id
      * @param message 
      */
-    public static void messageReceived(int id, byte[] message) {
-        WebSocket socket = sockets.get(id);
+    public static void messageReceived(final int id, final byte[] message) {
+        if (shouldWrapCallbacksInThread()) {
+            new Thread(new Runnable() {
+                public void run() {
+                    _messageReceived(id, message);
+                }
+            }).start();
+        } else {
+            _messageReceived(id, message);
+        }
+    }
+    private static void _messageReceived(int id, final byte[] message) {
+        final WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
         } else {
             try {
-                socket.onMessage(message);
+                if (socket.isCallbacksOnEdt()) {
+                    CN.callSerially(new Runnable() {
+                        public void run() {
+                            try {
+                                if (debugLoggingEnabled) {
+                                    log(socket, "onMessage: "+Arrays.toString(message));
+                                }
+                                socket.onMessage(message);
+                            } catch (Throwable t) {
+                                Log.e(t);
+                                socket.onError(new WebSocketException(t.getMessage(), 500));
+                            }
+                        }
+                    });
+                } else {
+                    if (debugLoggingEnabled) {
+                        log(socket, "onMessage: "+Arrays.toString(message));
+                    }
+                    socket.onMessage(message);
+                }
             } catch (Throwable t) {
                 Log.e(t);
                 socket.onError(new WebSocketException(t.getMessage(), 500));
@@ -141,20 +261,45 @@ public abstract class WebSocket {
      * @param statusCode
      * @param reason 
      */
-    public static void closeReceived(int id, int statusCode, String reason) {
+    public static void closeReceived(final int id, final int statusCode, final String reason) {
+        if (shouldWrapCallbacksInThread()) {
+            new Thread(new Runnable() {
+                public void run() {
+                    _closeReceived(id, statusCode, reason);
+                }
+            }).start();
+        } else {
+            _closeReceived(id, statusCode, reason);
+        }
+    }
+    
+    private static void _closeReceived(final int id, final int statusCode, final String reason) {
         final WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
         } else {
-            try {
-                socket.onClose(statusCode, reason);
-                sockets.remove(id);
-                if (socket.reconnectTimer == null && statusCode != 1000 && socket.autoReconnectTimeout > 0) {
-                    socket.initReconnect();
+            Runnable toRun = new Runnable() {
+                public void run() {
+                    try {
+                        if (debugLoggingEnabled) {
+                            log(socket, "onClose{ statusCode="+statusCode+", reason="+reason+"}");
+                        }
+                        socket.onClose(statusCode, reason);
+                        sockets.remove(id);
+                        if (socket.reconnectTimer == null && statusCode != 1000 && !socket.explicitlyClosed && socket.autoReconnectTimeout > 0) {
+                            socket.initReconnect();
+                        }
+                    } catch (Throwable t) {
+                        Log.e(t);
+                    }
                 }
-            } catch (Throwable t) {
-                Log.e(t);
+            };
+            if (socket.isCallbacksOnEdt()) {
+                CN.callSerially(toRun);
+            } else {
+                toRun.run();
             }
+            
         }
     }
     
@@ -162,8 +307,19 @@ public abstract class WebSocket {
      * @deprecated Internal callback for native implementations.
      * @param id 
      */
-    public static void openReceived(int id) {
-        WebSocket socket = sockets.get(id);
+    public static void openReceived(final int id) {
+        if (shouldWrapCallbacksInThread()) {
+            new Thread(new Runnable() {
+                public void run() {
+                    _openReceived(id);
+                }
+            }).start();
+        } else {
+            _openReceived(id);
+        }
+    }
+    private static void _openReceived(int id) {
+        final WebSocket socket = sockets.get(id);
         if (socket == null) {
             sockets.remove(id);
         } else {
@@ -171,10 +327,28 @@ public abstract class WebSocket {
                 socket.reconnectTimer.cancel();
                 socket.reconnectTimer = null;
             }
-            try {
-                socket.onOpen();
-            } catch (Throwable t) {
-                Log.e(t);
+            if (socket.isCallbacksOnEdt()) {
+                CN.callSerially(new Runnable() {
+                    public void run() {
+                        try {
+                            if (debugLoggingEnabled) {
+                                log(socket, "onOpen");
+                            }
+                            socket.onOpen();
+                        } catch (Throwable t) {
+                            Log.e(t);
+                        }
+                    }
+                });
+            } else {
+                try {
+                    if (debugLoggingEnabled) {
+                        log(socket, "onOpen");
+                    }
+                    socket.onOpen();
+                } catch (Throwable t) {
+                    Log.e(t);
+                }
             }
         }
     }
@@ -196,8 +370,20 @@ public abstract class WebSocket {
      * @param code 
      * @param cause Exception that caused the error
      */
-    public static void errorReceived(int id, String message, int code, Throwable cause) {
-        WebSocket socket = sockets.get(id);
+    public static void errorReceived(final int id, final String message, final int code, final Throwable cause) {
+        if (shouldWrapCallbacksInThread()) {
+            new Thread(new Runnable() {
+                public void run() {
+                    _errorReceived(id, message, code, cause);
+                }
+            }).start();
+        } else {
+            _errorReceived(id, message, code, cause);
+        }
+    }
+    
+    private static void _errorReceived(int id, String message, final int code, Throwable cause) {
+        final WebSocket socket = sockets.get(id);
         if (socket == null) {
             if (message == null) {
                 message = "null";
@@ -205,11 +391,29 @@ public abstract class WebSocket {
             System.out.println("WebSocket error received: ID="+id+", MSG="+message+", code="+code);
             sockets.remove(id);
         } else {
-            WebSocketException ex = new WebSocketException(message, code, cause);
-            try {
-                socket.onError(ex);
-            } catch (Throwable t) {
-                Log.e(t);
+            final WebSocketException ex = new WebSocketException(message, code, cause);
+            if (socket.isCallbacksOnEdt()) {
+                CN.callSerially(new Runnable() {
+                    public void run() {
+                        try {
+                            if (debugLoggingEnabled) {
+                                log(socket, "onError{ code="+code+" }");
+                            }
+                            socket.onError(ex);
+                        } catch (Throwable t) {
+                            Log.e(t);
+                        }
+                    }
+                });
+            } else {
+                try {
+                    if (debugLoggingEnabled) {
+                        log(socket, "onError{ code="+code+" }");
+                    }
+                    socket.onError(ex);
+                } catch (Throwable t) {
+                    Log.e(t);
+                }
             }
         }
     }
@@ -260,7 +464,8 @@ public abstract class WebSocket {
         
         impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
         impl.setId(nextId++);
-        sockets.put(impl.getId(), this);
+        id = impl.getId();
+        sockets.put(id, this);
         //impl.setUrl(url);
         //System.out.println("url is set");
     }
@@ -275,19 +480,36 @@ public abstract class WebSocket {
         if (getReadyState() == WebSocketState.OPEN) {
             impl.sendString(message);
         } else {
-            this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+            if (isCallbacksOnEdt() && !CN.isEdt()) {
+                CN.callSerially(new Runnable() {
+                    public void run() {
+                        WebSocket.this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+                    }
+                });
+            } else {
+                this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+            }
         }
     }
     public void send(byte[] message) {
         if (getReadyState() == WebSocketState.OPEN) {
             impl.sendBytes(message);
         } else {
-            this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+            if (isCallbacksOnEdt() && !CN.isEdt()) {
+                CN.callSerially(new Runnable() {
+                    public void run() {
+                        WebSocket.this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+                    }
+                });
+            } else {
+                this.onError(new IOException("Attempt to send message while socket is not open. "+getReadyState()));
+            }
         }
     }
     
     public void close() {
         // https://github.com/shannah/cn1-websockets/issues/14
+        explicitlyClosed = true;
         if (reconnectTimer != null) {
             reconnectTimer.cancel();
             reconnectTimer = null;
@@ -344,6 +566,7 @@ public abstract class WebSocket {
      * @param timeout The timeout in milliseconds.  Values {@literal <= 0} mean infinite timeout.
      */
     public void connect(int timeout) {
+        explicitlyClosed = false;
         connectTimeout = timeout;
         if (timeout > 0) {
             connectTimer = new Timer();
@@ -375,6 +598,7 @@ public abstract class WebSocket {
     
     private boolean connectHasBeenCalledAtLeastOnce;
     private void connect(boolean throwErrorIfNotFirstConnectAttempt) {
+        explicitlyClosed = false;
         try {
             if( throwErrorIfNotFirstConnectAttempt) {
                 
@@ -412,8 +636,16 @@ public abstract class WebSocket {
                 }
 
             }
-        } catch (Throwable t) {
-            onError(new WebSocketException("Exception occurred while trying to connect.", 500, t));
+        } catch (final Throwable t) {
+            if (isCallbacksOnEdt() && !CN.isEdt()) {
+                CN.callSerially(new Runnable() {
+                    public void run() {
+                        onError(new WebSocketException("Exception occurred while trying to connect.", 500, t));
+                    }
+                });
+            } else {
+                onError(new WebSocketException("Exception occurred while trying to connect.", 500, t));
+            }
         }
     }
     

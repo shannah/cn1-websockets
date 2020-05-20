@@ -7,3 +7,5 @@
 private
 /cn1-websockets-lib/native
 /cn1-websockets-lib/src
+cn1-websockets-demo/native/internal_tmp
+cn1-websockets-lib/*.jar
