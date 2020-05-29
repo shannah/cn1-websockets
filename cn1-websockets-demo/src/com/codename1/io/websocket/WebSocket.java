@@ -102,13 +102,7 @@ public abstract class WebSocket {
         return debugLoggingEnabled;
     }
     
-    private static int shouldWrapCallsInThread=-1;
-    private static boolean shouldWrapCallbacksInThread() {
-        if (shouldWrapCallsInThread == -1) {
-            shouldWrapCallsInThread =  "HTML5".equalsIgnoreCase(CN.getPlatformName()) ? 1 : 0;
-        }
-        return shouldWrapCallsInThread == 1;
-    }
+   
     
     /**
      * Checks if websockets are supported on this platform.
@@ -138,15 +132,7 @@ public abstract class WebSocket {
      * @param message 
      */
     public static void messageReceived(final int id, final String message) {
-        if (shouldWrapCallbacksInThread()) {
-            new Thread(new Runnable() {
-                public void run() {
-                    _messageReceived(id, message);
-                }
-            }).start();
-        } else {
-            _messageReceived(id, message);
-        }
+        _messageReceived(id, message);
     }
     
     private static void log(WebSocket sock, String message) {
@@ -202,15 +188,7 @@ public abstract class WebSocket {
      * @param message 
      */
     public static void messageReceived(final int id, final byte[] message) {
-        if (shouldWrapCallbacksInThread()) {
-            new Thread(new Runnable() {
-                public void run() {
-                    _messageReceived(id, message);
-                }
-            }).start();
-        } else {
-            _messageReceived(id, message);
-        }
+        _messageReceived(id, message);
     }
     private static void _messageReceived(int id, final byte[] message) {
         final WebSocket socket = sockets.get(id);
@@ -262,15 +240,7 @@ public abstract class WebSocket {
      * @param reason 
      */
     public static void closeReceived(final int id, final int statusCode, final String reason) {
-        if (shouldWrapCallbacksInThread()) {
-            new Thread(new Runnable() {
-                public void run() {
-                    _closeReceived(id, statusCode, reason);
-                }
-            }).start();
-        } else {
-            _closeReceived(id, statusCode, reason);
-        }
+        _closeReceived(id, statusCode, reason);
     }
     
     private static void _closeReceived(final int id, final int statusCode, final String reason) {
@@ -308,15 +278,7 @@ public abstract class WebSocket {
      * @param id 
      */
     public static void openReceived(final int id) {
-        if (shouldWrapCallbacksInThread()) {
-            new Thread(new Runnable() {
-                public void run() {
-                    _openReceived(id);
-                }
-            }).start();
-        } else {
-            _openReceived(id);
-        }
+        _openReceived(id);
     }
     private static void _openReceived(int id) {
         final WebSocket socket = sockets.get(id);
@@ -371,15 +333,7 @@ public abstract class WebSocket {
      * @param cause Exception that caused the error
      */
     public static void errorReceived(final int id, final String message, final int code, final Throwable cause) {
-        if (shouldWrapCallbacksInThread()) {
-            new Thread(new Runnable() {
-                public void run() {
-                    _errorReceived(id, message, code, cause);
-                }
-            }).start();
-        } else {
-            _errorReceived(id, message, code, cause);
-        }
+        _errorReceived(id, message, code, cause);
     }
     
     private static void _errorReceived(int id, String message, final int code, Throwable cause) {
