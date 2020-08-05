@@ -413,16 +413,35 @@ public abstract class WebSocket {
         return this;
     }
     
-    public WebSocket(String url) {
+    /**
+     * The WebSocket() constructor returns a new WebSocket object.
+     * @param url The URL to which to connect; this should be the URL to which the WebSocket server will respond.
+     * @param protocols Space-delimited string of sub-protocols, so that a single server can implement multiple WebSocket sub-protocols (for example, you might want one server to be able to handle different types of interactions depending on the specified protocol). If you don't specify a protocol string, an empty string is assumed.
+     */
+    public WebSocket(String url, String protocols) {
         this.url = url;
         
         impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
         impl.setId(nextId++);
         id = impl.getId();
         sockets.put(id, this);
+        if (protocols != null) {
+            setProtocols(protocols);
+        }
         //impl.setUrl(url);
         //System.out.println("url is set");
     }
+    
+    /**
+     * The WebSocket() constructor returns a new WebSocket object.
+     * @param url The URL to which to connect; this should be the URL to which the WebSocket server will respond.
+     */
+    
+    public WebSocket(String url) {
+        this(url, null);
+    }
+    
+    
     
     protected abstract void onOpen();
     protected abstract void onClose(int statusCode, String reason);
@@ -541,6 +560,27 @@ public abstract class WebSocket {
         } 
         connect();
         
+    }
+    
+    /**
+     * A space-delimited string of sub-protocols that a single server can implement multiple WebSocket sub-protocols (for example, you might want one server to be able to handle different types of interactions depending on the specified protocol). If you don't specify a protocol string, an empty string is assumed.
+     * @param protocols Space-delimited string of sub-protocols.
+     */
+    public void setProtocols(String protocols) {
+        if (impl != null) {
+            impl.setProtocols(protocols);
+        }
+    }
+    
+    /**
+     * Gets the space-delimited string of sub-protocols, or null if none are set.
+     * @return Space-delimited string or null.
+     */
+    public String getProtocols() {
+        if (impl != null) {
+            return impl.getProtocols();
+        }
+        return null;
     }
     
     /**

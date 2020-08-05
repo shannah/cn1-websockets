@@ -37,8 +37,35 @@
     [socket send:param];
 }
 
+-(void)setProtocols:(NSString*)param {
+    if (protocols != nil) {
+        [protocols release];
+    }
+    protocols = param;
+    if (protocols != nil) {
+        [protocols retain];
+    }
+}
+
+-(NSString*)getProtocols {
+    return protocols;
+}
+
+-(NSArray<NSString *> *)protocolsArray {
+    if (protocols == nil) {
+        return nil;
+    }
+    return [protocols componentsSeparatedByString:@" "];
+}
+
 -(void)setUrl:(NSString*)_url{
+    if (url != nil) {
+        [url release];
+    }
     url = _url;
+    if (url != nil) {
+        [url retain];
+    }
 }
 
 -(void)setId:(int)_id {
@@ -50,7 +77,11 @@
 }
 
 -(void)connect {
-    socket = [[SRWebSocket alloc] initWithURL:[NSURL URLWithString:url]];
+    if (protocols != nil) {
+        socket = [[SRWebSocket alloc] initWithURL:[NSURL URLWithString:url] protocols:[self protocolsArray]];
+    } else {
+        socket = [[SRWebSocket alloc] initWithURL:[NSURL URLWithString:url]];
+    }
     socket.delegate = self;
     [socket open];
 }
@@ -61,10 +92,21 @@
 
 -(void)dealloc {
 #ifndef CN1_USE_ARC
-    [socket release];
-#endif
-    socket = nil;
+    if (socket != nil) {
+        [socket release];
+
+        socket = nil;
+    }
+    if (url != nil) {
+        [url release];
+        url = nil;
+    }
+    if (protocols != nil) {
+        [protocols release];
+        protocols = nil;
+    }
     [super dealloc];
+#endif
 }
 
 extern JAVA_OBJECT fromNSString(CN1_THREAD_STATE_MULTI_ARG NSString *str);
@@ -113,4 +155,6 @@ extern void com_codename1_impl_ios_IOSNative_nsDataToByteArray___long_byte_1ARRA
     }
     return socket.readyState;
 }
+
+
 @end

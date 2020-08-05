@@ -9,6 +9,12 @@ public class WebSocketNativeImplImpl {
 
     public void setUrl(String param) {
     }
+    
+    public void setProtocols(String param){}
+    public String getProtocols() {
+        return null;
+    }
+    
 
     public boolean isSupported() {
         return false;

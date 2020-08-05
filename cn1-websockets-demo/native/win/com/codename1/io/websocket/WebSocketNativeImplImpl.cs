@@ -31,6 +31,7 @@ namespace com.codename1.io.websocket {
         Windows.Networking.Sockets.MessageWebSocket sck;
         DataWriter messageWriter;
         private string url;
+        private string protocols;
         private int id;
         private WebSocketState state = WebSocketState.CLOSED;
         
@@ -49,7 +50,12 @@ namespace com.codename1.io.websocket {
             {
 
                 sck = new Windows.Networking.Sockets.MessageWebSocket();
-
+                if (protocols != null) {
+                    foreach (var protocol in protocols.Split(' ')) {
+                        sck.Control.SupportedProtocols.Add(protocol);
+                    }
+                    
+                }
                 sck.MessageReceived += Sck_MessageReceived;
                 
                 sck.Closed += Sck_Closed;
@@ -194,6 +200,14 @@ namespace com.codename1.io.websocket {
 
         public void setUrl(string url) {
             this.url = url;
+        }
+
+        public void setProtocols(string protocols) {
+            this.protocols = protocols;
+        }
+
+        public string getProtocols() {
+            return this.protocols;
         }
 
         public bool isSupported() {

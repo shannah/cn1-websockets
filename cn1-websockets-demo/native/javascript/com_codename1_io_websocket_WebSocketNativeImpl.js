@@ -73,6 +73,17 @@ var o = {};
         callback.complete();
     };
     
+    o.setProtocols__java_lang_String = function(protocols, callback) {
+        var self = this;
+        this.protocols = protocols;
+        
+        callback.complete();
+    };
+    
+    o.getProtocols_ = function(callback) {
+        callback.complete(this.protocols);
+    };
+    
     o.setId__int = function(id, callback) {
         this.id = id;
         callback.complete();
@@ -97,7 +108,11 @@ var o = {};
     o.connect_ = function(callback) {
         try {
             var self = this;
-            this.socket = new WebSocket(this.url);
+            if (this.protocols) {
+                this.socket = new WebSocket(this.url, this.protocols.split(' '));
+            } else {
+                this.socket = new WebSocket(this.url);
+            }
             this.socket.binaryType = "arraybuffer";
             var messageReceivedStr = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.messageReceived__int_java_lang_String$async;
             var messageReceivedBytes = self.$GLOBAL$.com_codename1_io_websocket_WebSocket.messageReceivedBytes__int_byte_1ARRAY$async;

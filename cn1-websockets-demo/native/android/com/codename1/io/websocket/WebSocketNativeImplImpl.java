@@ -24,6 +24,7 @@ package com.codename1.io.websocket;
 //import org.java_websocket.client.WebSocketClient;
 //import org.java_websocket.handshake.ServerHandshake;
 import com.codename1.io.Log;
+import com.codename1.io.Util;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSED;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSING;
 import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
@@ -44,6 +45,8 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
     //WebSocketClient client;
     com.neovisionaries.ws.client.WebSocket client;
     int id;
+    private String protocols;
+   
 
     public void close() {
         if (client == null) {
@@ -72,35 +75,24 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
         client.sendText(message);
     }
 
-    public void setUrl(String url) {/*
-         System.out.println("Setting url to "+url);
-         try {
-         client = new WebSocketClient(new URI(url)) {
-         public void onOpen(ServerHandshake sh) {
-         System.out.println("in native onOpen");
-         WebSocket.openReceived(id);
-         }
-                
-         public void onMessage(String string) {
-         WebSocket.messageReceived(id, string);
-         }
-                
-         public void onClose(int i, String string, boolean bln) {
-         WebSocket.closeReceived(id, i, string);
-         }
-                
-         public void onError(Exception excptn) {
-         System.out.println("In native onError");
-         WebSocket.errorReceived(id, excptn.getMessage(), 500);
-         }
-         };
-         } catch (URISyntaxException ex) {
-         throw new RuntimeException(ex);
-         }
-         */
+    
+    public void setProtocols(String protocols) {
+        this.protocols = protocols;
+        
+    }
+    public String getProtocols() {
+        return protocols;
+    }
+    
+    public void setUrl(String url) {
 
         try {
             client = new WebSocketFactory().createSocket(url);
+            if (protocols != null) {
+                for (String protocol : Util.split(protocols, " ")) {
+                    client.addProtocol(protocol);
+                }
+            }
             client.addListener(new WebSocketAdapter() {
                 @Override
                 public void onConnected(com.neovisionaries.ws.client.WebSocket websocket, Map<String, List<String>> headers) {
@@ -108,7 +100,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.openReceived(id);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -121,7 +113,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.messageReceived(id, text);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -134,7 +126,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         WebSocket.messageReceived(id, binary);
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -144,7 +136,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                 @Override
                 public void onError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) {
                     try {
-                        WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal());
+                        WebSocket.errorReceived(id, cause.getMessage(), cause.getError().ordinal(), cause);
                     } catch (Throwable t) {
                         Log.e(t);
                     }
@@ -164,7 +156,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                         }
                     } catch (Throwable t) {
                         try {
-                            WebSocket.errorReceived(id, t.getMessage(), 0);
+                            WebSocket.errorReceived(id, t.getMessage(), 0, t);
                         } catch (Throwable t2) {
                             Log.e(t2);
                         }
@@ -172,7 +164,7 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
                 }
             });
         } catch (Exception ex) {
-            WebSocket.errorReceived(id, ex.getMessage(), 500);
+            WebSocket.errorReceived(id, ex.getMessage(), 500, ex);
         }
     }
 

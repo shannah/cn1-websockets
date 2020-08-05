@@ -23,6 +23,8 @@ package com.codename1.io.websocket;
 
 //import org.java_websocket.client.WebSocketClient;
 //import org.java_websocket.handshake.ServerHandshake;
+import com.codename1.io.Log;
+import com.codename1.io.Util;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSED;
 import static com.neovisionaries.ws.client.WebSocketState.CLOSING;
 import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
@@ -32,7 +34,7 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFrame;
-import com.codename1.io.Log;
+import static com.neovisionaries.ws.client.WebSocketState.CONNECTING;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -43,6 +45,8 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
     //WebSocketClient client;
     com.neovisionaries.ws.client.WebSocket client;
     int id;
+    private String protocols;
+   
 
     public void close() {
         if (client == null) {
@@ -71,35 +75,24 @@ public class WebSocketNativeImplImpl implements com.codename1.io.websocket.WebSo
         client.sendText(message);
     }
 
-    public void setUrl(String url) {/*
-         System.out.println("Setting url to "+url);
-         try {
-         client = new WebSocketClient(new URI(url)) {
-         public void onOpen(ServerHandshake sh) {
-         System.out.println("in native onOpen");
-         WebSocket.openReceived(id);
-         }
-                
-         public void onMessage(String string) {
-         WebSocket.messageReceived(id, string);
-         }
-                
-         public void onClose(int i, String string, boolean bln) {
-         WebSocket.closeReceived(id, i, string);
-         }
-                
-         public void onError(Exception excptn) {
-         System.out.println("In native onError");
-         WebSocket.errorReceived(id, excptn.getMessage(), 500);
-         }
-         };
-         } catch (URISyntaxException ex) {
-         throw new RuntimeException(ex);
-         }
-         */
+    
+    public void setProtocols(String protocols) {
+        this.protocols = protocols;
+        
+    }
+    public String getProtocols() {
+        return protocols;
+    }
+    
+    public void setUrl(String url) {
 
         try {
             client = new WebSocketFactory().createSocket(url);
+            if (protocols != null) {
+                for (String protocol : Util.split(protocols, " ")) {
+                    client.addProtocol(protocol);
+                }
+            }
             client.addListener(new WebSocketAdapter() {
                 @Override
                 public void onConnected(com.neovisionaries.ws.client.WebSocket websocket, Map<String, List<String>> headers) {

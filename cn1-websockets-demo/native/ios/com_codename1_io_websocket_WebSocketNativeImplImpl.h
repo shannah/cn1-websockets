@@ -27,9 +27,12 @@
     NSString *url;
     int id_;
     BOOL closed;
+    NSString *protocols;
 }
 
 -(void)close;
+-(void)setProtocols:(NSString*)param;
+-(NSString*)getProtocols;
 -(void)sendString:(NSString*)param;
 -(void)sendBytes:(NSData*)param;
 -(void)setUrl:(NSString*)param;
