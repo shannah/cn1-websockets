@@ -29,6 +29,7 @@ import com.codename1.ui.Display;
 import com.codename1.ui.util.WeakHashMap;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -38,6 +39,7 @@ import java.util.TimerTask;
  * @author shannah
  */
 public abstract class WebSocket {
+    
 
     /**
      * Checks whether websocket callbacks (e.g. onMessage, onError, onOpen, onClose) should
@@ -58,7 +60,6 @@ public abstract class WebSocket {
     public void setCallbacksOnEdt(boolean callbacksOnEdt) {
         this.callbacksOnEdt = callbacksOnEdt;
     }
-    
     private static boolean debugLoggingEnabled = false;
     private static int nextId = 1;
     private int id;
@@ -498,7 +499,8 @@ public abstract class WebSocket {
     }
 
     private void initReconnect() {
-        if (reconnectTimer == null && autoReconnectTimeout > 0) {
+        long localAutoReconnectTimeout = autoReconnectTimeout;
+        if (reconnectTimer == null && localAutoReconnectTimeout > 0) {
             reconnectTimer = new Timer();
             reconnectTimer.schedule(new TimerTask() {
 
@@ -508,7 +510,7 @@ public abstract class WebSocket {
                     reconnect();
                 }
 
-            }, autoReconnectTimeout, autoReconnectTimeout);
+            }, localAutoReconnectTimeout, localAutoReconnectTimeout);
         }
     }
     
