@@ -12,6 +12,21 @@ This library adds WebSocket client support for Codename One apps.
 
 == Installation
 
+**For Maven Projects:**
+To use this in a Codename One maven project, add the following dependency to your common/pom.xml dependencies section:
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.codenameone</groupId>
+    <artifactId>websockets-lib</artifactId>
+    <version>1.0</version>
+    <type>pom</type>
+</dependency>
+----
+
+**For non-maven projects:**
+
 Copy the cn1-websockets.cn1lib file https://github.com/shannah/cn1-websockets/releases/latest[from the latest release] into your project's `lib` directory.  Then select "Refresh Libs".
 
 == Chat Demo
@@ -107,15 +122,15 @@ If you would like to build the source yourself, or make improvements, simply for
 
 ----
 $ git clone https://github.com/shannah/cn1-websockets.git
-$ cd cn1-websockets
-$ ant
+$ cd cn1-websockets-lib
+$ mvn install
 ----
 
-You should then be able to find the `cn1-websockets.cn1lib` in the newly created `dist` directory.
+You should then be able to find the `cn1-websockets.cn1lib` in the common/target directory
 
 ==== Project Source Layout
 
-Notice that the cn1-websockets-lib subproject is only used for building the project.  Modify sources in the `cn1-websockets-demo` project.  The `build.xml` script will automatically copy the necessary files into the `cn1-websockets-lib` project at build time.  This just makes it easier for testing the library during development.
+The library project is contained in link:the cn1-websockets-lib[] directory. For details of project structure see https://shannah.github.io/codenameone-maven-manual/[The Codename One Maven Developers Guide]. 
 
 == Contact
 

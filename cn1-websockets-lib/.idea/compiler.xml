@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="websockets-android" />
+        <module name="websockets-javascript" />
+        <module name="websockets-javase" />
+        <module name="websockets-tests-javase" />
+        <module name="websockets-ios" />
+        <module name="websockets-common" />
+        <module name="websockets-win" />
+        <module name="websockets-tests-common" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="websockets" target="8" />
+      <module name="websockets-android" target="8" />
+      <module name="websockets-common" target="8" />
+      <module name="websockets-ios" target="8" />
+      <module name="websockets-javascript" target="8" />
+      <module name="websockets-javase" target="1.8" />
+      <module name="websockets-lib" target="1.8" />
+      <module name="websockets-tests" target="8" />
+      <module name="websockets-tests-common" target="8" />
+      <module name="websockets-tests-javase" target="1.8" />
+      <module name="websockets-win" target="8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

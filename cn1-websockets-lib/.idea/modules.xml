@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/websockets.iml" filepath="$PROJECT_DIR$/websockets.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/websockets-android.iml" filepath="$PROJECT_DIR$/android/websockets-android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/common/websockets-common.iml" filepath="$PROJECT_DIR$/common/websockets-common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ios/websockets-ios.iml" filepath="$PROJECT_DIR$/ios/websockets-ios.iml" />
+      <module fileurl="file://$PROJECT_DIR$/javascript/websockets-javascript.iml" filepath="$PROJECT_DIR$/javascript/websockets-javascript.iml" />
+      <module fileurl="file://$PROJECT_DIR$/javase/websockets-javase.iml" filepath="$PROJECT_DIR$/javase/websockets-javase.iml" />
+      <module fileurl="file://$PROJECT_DIR$/lib/websockets-lib.iml" filepath="$PROJECT_DIR$/lib/websockets-lib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tests/websockets-tests.iml" filepath="$PROJECT_DIR$/tests/websockets-tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tests/common/websockets-tests-common.iml" filepath="$PROJECT_DIR$/tests/common/websockets-tests-common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tests/javase/websockets-tests-javase.iml" filepath="$PROJECT_DIR$/tests/javase/websockets-tests-javase.iml" />
+      <module fileurl="file://$PROJECT_DIR$/win/websockets-win.iml" filepath="$PROJECT_DIR$/win/websockets-win.iml" />
+    </modules>
+  </component>
+</project>

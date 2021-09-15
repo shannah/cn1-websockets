@@ -1,4 +1,26 @@
-This Netbeans project merely used as a project template for generating  the cn1lib for the Codename One WebSockets project.
+= Codename One Websockets Library
 
-* See https://github.com/shannah/cn1-websockets[the readme file] for more information about the Codename One WebSockets library.
-* The actual source files for this library are located in the https://github.com/shannah/cn1-websockets/tree/master/cn1-websockets-demo[WebSockets Demo project]
+This directory contains the Codename One Maven project for building the websockets library.
+
+For details of project structure see https://shannah.github.io/codenameone-maven-manual/[The Codename One Maven Developers Guide].
+
+== Installation
+
+To use this in a Codename One maven project, add the following dependency to your common/pom.xml dependencies section:
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.codenameone</groupId>
+    <artifactId>websockets-lib</artifactId>
+    <version>1.0</version>
+    <type>pom</type>
+</dependency>
+----
+
+== Building from Source
+
+[source,bash]
+----
+mvn install
+----

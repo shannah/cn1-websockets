@@ -9,3 +9,6 @@ private
 /cn1-websockets-lib/src
 cn1-websockets-demo/native/internal_tmp
 cn1-websockets-lib/*.jar
+target
+/cn1-websockets-demo/*.jar
+cn1-websockets-demo/CodeNameOneBuildClient.jar
