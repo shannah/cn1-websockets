@@ -61,6 +61,7 @@ public abstract class WebSocket {
         this.callbacksOnEdt = callbacksOnEdt;
     }
     private static boolean debugLoggingEnabled = false;
+    private static final Object SOCKETS_LOCK = new Object();
     private static int nextId = 1;
     private int id;
     private static final int ERR_TIMEOUT = 999;
@@ -118,8 +119,30 @@ public abstract class WebSocket {
         }
     }
     
-    private static WeakHashMap<Integer, WebSocket> sockets = new WeakHashMap<Integer, WebSocket>();
+    private static final WeakHashMap<Integer, WebSocket> sockets = new WeakHashMap<Integer, WebSocket>();
     
+    // All registry access and ID allocation share this lock. Never invoke an
+    // application handler while holding it: handlers may create other sockets.
+    private static WebSocket lookup(int id) {
+        WebSocket socket;
+        synchronized (SOCKETS_LOCK) {
+            socket = sockets.get(id);
+            if (socket == null) {
+                sockets.remove(id);
+            }
+        }
+        if (socket == null) {
+            Log.p("WebSocket callback ignored for unknown connection ID=" + id);
+        }
+        return socket;
+    }
+
+    private static void unregister(int id) {
+        synchronized (SOCKETS_LOCK) {
+            sockets.remove(id);
+        }
+    }
+
     // Utility method for the iOS port to create a new byte array
     static byte[] newByteArray(int len) {
         return new byte[len];
@@ -150,10 +173,8 @@ public abstract class WebSocket {
     }
     
     private static void _messageReceived(int id, final String message) {
-        final WebSocket socket = sockets.get(id);
-        if (socket == null) {
-            sockets.remove(id);
-        } else {
+        final WebSocket socket = lookup(id);
+        if (socket != null) {
             socket.connecting = false;
             try {
                 if (socket.isCallbacksOnEdt()) {
@@ -192,10 +213,8 @@ public abstract class WebSocket {
         _messageReceived(id, message);
     }
     private static void _messageReceived(int id, final byte[] message) {
-        final WebSocket socket = sockets.get(id);
-        if (socket == null) {
-            sockets.remove(id);
-        } else {
+        final WebSocket socket = lookup(id);
+        if (socket != null) {
             try {
                 if (socket.isCallbacksOnEdt()) {
                     CN.callSerially(new Runnable() {
@@ -245,10 +264,8 @@ public abstract class WebSocket {
     }
     
     private static void _closeReceived(final int id, final int statusCode, final String reason) {
-        final WebSocket socket = sockets.get(id);
-        if (socket == null) {
-            sockets.remove(id);
-        } else {
+        final WebSocket socket = lookup(id);
+        if (socket != null) {
             Runnable toRun = new Runnable() {
                 public void run() {
                     try {
@@ -256,7 +273,7 @@ public abstract class WebSocket {
                             log(socket, "onClose{ statusCode="+statusCode+", reason="+reason+"}");
                         }
                         socket.onClose(statusCode, reason);
-                        sockets.remove(id);
+                        unregister(id);
                         if (socket.reconnectTimer == null && statusCode != 1000 && !socket.explicitlyClosed && socket.autoReconnectTimeout > 0) {
                             socket.initReconnect();
                         }
@@ -282,10 +299,8 @@ public abstract class WebSocket {
         _openReceived(id);
     }
     private static void _openReceived(int id) {
-        final WebSocket socket = sockets.get(id);
-        if (socket == null) {
-            sockets.remove(id);
-        } else {
+        final WebSocket socket = lookup(id);
+        if (socket != null) {
             if (socket.reconnectTimer != null) {
                 socket.reconnectTimer.cancel();
                 socket.reconnectTimer = null;
@@ -338,13 +353,12 @@ public abstract class WebSocket {
     }
     
     private static void _errorReceived(int id, String message, final int code, Throwable cause) {
-        final WebSocket socket = sockets.get(id);
+        final WebSocket socket = lookup(id);
         if (socket == null) {
             if (message == null) {
                 message = "null";
             }
-            System.out.println("WebSocket error received: ID="+id+", MSG="+message+", code="+code);
-            sockets.remove(id);
+            Log.p("WebSocket error received: ID="+id+", MSG="+message+", code="+code);
         } else {
             final WebSocketException ex = new WebSocketException(message, code, cause);
             if (socket.isCallbacksOnEdt()) {
@@ -423,9 +437,11 @@ public abstract class WebSocket {
         this.url = url;
         
         impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
-        impl.setId(nextId++);
-        id = impl.getId();
-        sockets.put(id, this);
+        synchronized (SOCKETS_LOCK) {
+            impl.setId(nextId++);
+            id = impl.getId();
+            sockets.put(id, this);
+        }
         if (protocols != null) {
             setProtocols(protocols);
         }
@@ -522,9 +538,14 @@ public abstract class WebSocket {
             return;
         }
         System.out.println("Attempting to reconnect...");
-        impl = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
-        impl.setId(nextId++);
-        sockets.put(impl.getId(), this);
+        WebSocketNativeImpl replacement = (WebSocketNativeImpl)NativeLookup.create(WebSocketNativeImpl.class);
+        synchronized (SOCKETS_LOCK) {
+            replacement.setId(nextId++);
+            unregister(id);
+            impl = replacement;
+            id = replacement.getId();
+            sockets.put(id, this);
+        }
         connecting = false;
         connectHasBeenCalledAtLeastOnce=false;
         try {
